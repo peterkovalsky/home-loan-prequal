@@ -26,6 +26,7 @@ describe('toErrorMessages', () => {
 	it('explains network failures and concurrent edits', () => {
 		expect(toErrorMessages(httpError(0))).toEqual([NETWORK_ERROR]);
 		expect(toErrorMessages(httpError(412))).toEqual([CONFLICT_ERROR]);
+		expect(toErrorMessages(httpError(428))).toEqual([CONFLICT_ERROR]);
 	});
 
 	it('falls back to a generic or supplied message', () => {

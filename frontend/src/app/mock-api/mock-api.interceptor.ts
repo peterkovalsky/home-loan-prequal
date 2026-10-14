@@ -1,4 +1,4 @@
-import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { delay, dematerialize, materialize, of, throwError } from 'rxjs';
 import { APP_CONFIG } from '../core/config/app-config';
@@ -19,11 +19,12 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
 			continue;
 		}
 
-		const { status, body } = route.handle(req, match.slice(1));
+		const { status, body, headers: rawHeaders } = route.handle(req, match.slice(1));
+		const headers = new HttpHeaders(rawHeaders);
 		const response$ =
 			status < 400
-				? of(new HttpResponse({ status, body, url: req.url }))
-				: throwError(() => new HttpErrorResponse({ status, error: body, url: req.url }));
+				? of(new HttpResponse({ status, body, headers, url: req.url }))
+				: throwError(() => new HttpErrorResponse({ status, error: body, headers, url: req.url }));
 
 		return response$.pipe(materialize(), delay(MOCK_LATENCY_MS), dematerialize());
 	}

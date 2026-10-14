@@ -64,4 +64,34 @@ describe('mockApiInterceptor', () => {
 
 		expect(error?.status).toBe(404);
 	}));
+
+	it('rejects a stale save with 412 and a missing If-Match with 428', fakeAsync(() => {
+		const statuses: number[] = [];
+		const record = { error: (e: HttpErrorResponse) => statuses.push(e.status) };
+
+		http.put('/api/applications/1/loan-details', details).subscribe();
+		tick(MOCK_LATENCY_MS);
+		http.put('/api/applications/1/loan-details', details).subscribe(record);
+		tick(MOCK_LATENCY_MS);
+		http.put('/api/applications/1/loan-details', details, { headers: { 'If-Match': '"0"' } }).subscribe(record);
+		tick(MOCK_LATENCY_MS);
+
+		expect(statuses).toEqual([428, 412]);
+	}));
+
+	it('returns a new ETag after each save', fakeAsync(() => {
+		const etags: (string | null)[] = [];
+
+		http.put('/api/applications/1/loan-details', details, { observe: 'response' }).subscribe((r) =>
+			etags.push(r.headers.get('ETag'))
+		);
+		tick(MOCK_LATENCY_MS);
+		http.put('/api/applications/1/loan-details', details, {
+			observe: 'response',
+			headers: { 'If-Match': '"1"' }
+		}).subscribe((r) => etags.push(r.headers.get('ETag')));
+		tick(MOCK_LATENCY_MS);
+
+		expect(etags).toEqual(['"1"', '"2"']);
+	}));
 });

@@ -23,7 +23,7 @@ export function toErrorMessages(error: unknown, fallback = GENERIC_SAVE_ERROR): 
 	if (error.status === 0) {
 		return [NETWORK_ERROR];
 	}
-	if (error.status === 412) {
+	if (error.status === 412 || error.status === 428) {
 		return [CONFLICT_ERROR];
 	}
 
