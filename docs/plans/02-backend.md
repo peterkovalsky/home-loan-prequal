@@ -1,6 +1,6 @@
 # Phase 2: .NET API and SQL Server
 
-Status: **draft, for review.** Parent plan: [00-overview.md](00-overview.md).
+Status: **done.** Parent plan: [00-overview.md](00-overview.md). See "As built" at the end for where the code differs from this plan.
 
 ## Goals
 
@@ -276,3 +276,25 @@ The rule constants are the same as `frontend/src/app/shared/validation/applicant
 - **Outbox and domain events.** Nothing else reacts to saves yet.
 - **Encrypting columns with personal data (Always Encrypted).** RDS encryption at rest and TLS in transit cover this exercise. NOTES lists column-level encryption as next for dates of birth and mobile numbers.
 - **Serving the applicant cap and terms version to the front end** (e.g. `GET /api/config`). For now the front end's `config.json` and the API settings must agree; NOTES flags the drift risk and this fix.
+
+## As built
+
+Delivered in 11 commits (`0f5c93c` to the docs commit). Tests: 77 unit, 47 integration (real SQL Server via Testcontainers) and 6 Playwright journeys, run against both the mock and Docker Compose. All four CI jobs pass.
+
+| Planned | Built | Why |
+|---|---|---|
+| Repositories work with DTOs | **Domain records** (`LoanDetails`, `Applicant`, `ApplicantSet`, `Consent`) in `HomeLoan.Domain` | The persistence layer shouldn't depend on the HTTP contract. Mapping validated DTOs (nullable) to domain records (non-null) also removes the `!` from repository code. |
+| FluentValidation in an endpoint filter | **Validation inside each handler** | The handler is the use-case boundary, so no entry point (an endpoint, a future Lambda trigger, a test) can skip validation. One less piece of framework plumbing. |
+| A `Result<T>` with an `Error` type | `AppError` | CA1716: `Error` is a reserved word in VB. Static factories moved to a non-generic `Result` class (CA1000). |
+| `IExceptionHandler` for bad requests | **`BadRequestMiddleware`**, inside `UseExceptionHandler` | ai-log #5 and #6. Malformed JSON returned `500` in Development, and the first fix logged every client mistake at Error level with a stack trace. |
+| One transaction per request, rolled back on dispose | Plus **`IUnitOfWork.RollbackAsync`**, called as soon as a save fails | ai-log #7, found on CI. Locks are released before the client can send its next request, and dispose tolerates a transaction the server has already ended. |
+| A table-valued parameter for the `MERGE` | `OPENJSON(@applicants)` as the `MERGE` source | No user-defined table type to create, grant and migrate. The validator caps lengths before `OPENJSON` could truncate. |
+| — | Deadlocks and timeouts give **`503` + `Retry-After`** (`DatabaseExceptionHandler`) | A transient failure should tell the client to retry, not return a generic 500. |
+| — | `homeloan_app` login checked by tests: data access works, `CREATE TABLE` is denied | Proves least privilege, rather than just stating it. |
+| 5 race rounds | 20 by default; `RACE_ROUNDS` overrides | CI exposed a rare interleaving that 5 rounds and local emulation didn't. |
+
+**Notes for NOTES.md:**
+
+- **Applicant ids are stable per position, not per person.** Removing applicant 2 of 4 shifts applicant 3 into position 2, and it keeps position 2's id. Ids per person would need the client to send ids back; that is listed as an improvement.
+- **Loan details are read outside the applicants transaction.** If loan details change between that read and the applicants save, the count check uses the earlier answer. The window is milliseconds, and the step nav's "completed" rule re-checks the count. Locking loan details too was judged not worth the contention.
+- **.NET 8 exception logging.** `ExceptionHandlerMiddleware` logs at Error before any `IExceptionHandler` runs (.NET 9+ can suppress this). That's why bad requests are handled in middleware.

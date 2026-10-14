@@ -27,9 +27,12 @@ Take-home exercise: an Angular front end, a .NET 8 API with SQL Server (Dapper),
 | Front end dev server (mock API) | `cd frontend && npm start` (http://localhost:4200) |
 | Front end dev server (local API) | `cd frontend && npm run start:api` (proxies `/api` to :5080) |
 | Front end checks | `cd frontend && npm run format:check && npm run lint && npm run test:ci` |
-| Front end E2E | `cd frontend && npm run e2e` |
+| Front end E2E (mock) | `cd frontend && npm run e2e` |
+| Full local stack | `cp .env.example .env && docker compose up -d --build` (API on :5080) |
+| Front end E2E (real API) | `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` (stack must be up) |
+| Back end build and tests | `cd backend && dotnet build && dotnet test` (integration tests need Docker) |
 
-(Back-end, E2E and infra commands are added as each phase lands.)
+(Infra commands are added in Phase 3.)
 
 ## Definition of done
 

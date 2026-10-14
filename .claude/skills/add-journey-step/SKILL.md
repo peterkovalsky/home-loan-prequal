@@ -31,16 +31,17 @@ Get it reviewed before writing code.
    - a spec for each new rule, validator, mock route and the component;
    - a Playwright journey in `frontend/e2e`.
 
-## 3. Back end (once `backend/` exists)
+## 3. Back end (`backend/`, see `backend/CLAUDE.md`)
 
-See `backend/CLAUDE.md`:
-- SQL migration
-- domain rules
-- FluentValidation validator (same constants as the front end)
-- handler
-- Dapper repository
-- endpoint
-- unit and integration tests
+1. **Migration:** a new `Scripts/Migrations/NNNN_*.sql`. The resource gets its own table, or a parent row with its own `rowversion` (one version per resource, never shared). Name every constraint.
+2. **Domain:** a record in `Models.cs`, plus rules and constants (mirror the front end).
+3. **Application:** a feature folder with a DTO (nullable properties), a validator, a repository interface, and Get/Save handlers using `OptimisticSave`, `IUnitOfWork` and `Result<T>`. Register them in `DependencyInjection.cs`.
+4. **Infrastructure:** a Dapper repository with compare-and-swap on `RowVersion`. Register it.
+5. **API:** routes in `Endpoints/ApplicationEndpoints.cs` using `ToGetResult`/`ToPutResult`.
+6. **Tests:**
+   - validator and handler unit tests, using the fakes in `UnitTests/Application/Fakes.cs`;
+   - integration tests for the contract and a schema test for each new constraint;
+   - extend the E2E journey.
 
 ## 4. Check
 

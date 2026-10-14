@@ -1,6 +1,6 @@
 # Implementation plan: overview
 
-Status: **agreed**. Phases 0 and 1 done; Phase 2 next.
+Status: **agreed**. Phases 0–2 done; Phase 3 (AWS) next.
 Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.md`, `03-aws.md`), written and reviewed before code.
 
 ## Principles
@@ -21,7 +21,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 | Database | SQL Server 2022 in Docker (Rosetta on Apple Silicon); RDS SQL Server Express in AWS. |
 | Data access | Dapper, with DbUp for versioned SQL migrations. |
 | IaC | AWS CDK in C# (one language across the back end). |
-| Concurrency | `rowversion` exposed as an ETag; `If-Match` on PUT; stale writes get `412`. |
+| Concurrency | A `rowversion` per resource, exposed as an ETag; `If-Match` on PUT; stale writes get `412`, a missing `If-Match` gets `428`. |
 
 ## Phase 0: Repo and guardrails (~30 min)
 
@@ -29,7 +29,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 - [x] Pin Node 22; baseline `npm run test:ci` passes (12/12)
 - [x] This plan, `CLAUDE.md` (root and frontend), `docs/ai-log.md`
 - [x] CI skeleton (GitHub Actions): front-end build and tests, pushed to a private GitHub repo with a green first run. Back-end and E2E jobs are added in their phases.
-- [ ] `backend/CLAUDE.md`, written at the start of Phase 2 once the solution exists
+- [x] `backend/CLAUDE.md`, written at the start of Phase 2 once the solution exists
 
 ## Phase 1: Front end (~2.5 h), detail in `01-frontend.md` (done)
 
@@ -55,7 +55,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 
 **1d. Playwright E2E:** happy path with 2 applicants; Back keeps input; validation messages; "More than two" add/remove. Runs against the mock first, then against the real stack.
 
-## Phase 2: Back end (~4 h), detail in `02-backend.md`
+## Phase 2: Back end (~4 h), detail in `02-backend.md` (done)
 
 **Solution layout**
 
