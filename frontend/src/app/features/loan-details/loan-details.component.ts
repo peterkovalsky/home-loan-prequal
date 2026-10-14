@@ -1,12 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { finalize, merge } from 'rxjs';
 import { CURRENT_APPLICATION_ID } from '../../core/api/api.config';
 import { LoanDetailsService } from '../../core/api/loan-details.service';
-import { JOURNEY_STEPS } from '../../core/journey/journey-steps';
+import { STEP_PATHS } from '../../core/journey/journey-steps';
+import { JourneyService } from '../../core/journey/journey.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
 import {
 	AU_STATE_OPTIONS,
@@ -25,12 +25,13 @@ import { depositWithinPropertyValueValidator } from '../../shared/validators/dep
 	selector: 'app-loan-details',
 	imports: [ReactiveFormsModule],
 	templateUrl: './loan-details.component.html',
-	styleUrl: './loan-details.component.scss'
+	styleUrl: './loan-details.component.scss',
+	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoanDetailsComponent implements OnInit {
 	private readonly fb = inject(FormBuilder);
 	private readonly loanDetailsService = inject(LoanDetailsService);
-	private readonly router = inject(Router);
+	private readonly journey = inject(JourneyService);
 	private readonly destroyRef = inject(DestroyRef);
 
 	readonly purposeOptions = LENDING_PURPOSE_OPTIONS;
@@ -122,7 +123,7 @@ export class LoanDetailsComponent implements OnInit {
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe({
-				next: () => this.goToNextStep(),
+				next: () => this.saved.set(!this.journey.goNext(STEP_PATHS.loanDetails)),
 				error: (error: HttpErrorResponse) => this.errorMessages.set(this.toErrorMessages(error))
 			});
 	}
@@ -173,16 +174,6 @@ export class LoanDetailsComponent implements OnInit {
 			address: value.isAddressKnown ? value.address : null,
 			state: value.isAddressKnown ? null : value.state
 		};
-	}
-
-	private goToNextStep(): void {
-		const currentIndex = JOURNEY_STEPS.findIndex((step) => step.path === '/loan-details');
-		const nextStep = JOURNEY_STEPS[currentIndex + 1];
-		if (nextStep) {
-			this.router.navigateByUrl(nextStep.path);
-		} else {
-			this.saved.set(true);
-		}
 	}
 
 	private toErrorMessages(error: HttpErrorResponse): string[] {

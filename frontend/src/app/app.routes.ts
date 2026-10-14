@@ -1,8 +1,15 @@
 import { Routes } from '@angular/router';
-import { LoanDetailsComponent } from './features/loan-details/loan-details.component';
+import { STEP_PATHS } from './core/journey/journey-steps';
+
+const path = (stepPath: string) => stepPath.replace(/^\//, '');
 
 export const routes: Routes = [
-	{ path: '', redirectTo: 'loan-details', pathMatch: 'full' },
-	{ path: 'loan-details', component: LoanDetailsComponent, title: 'Loan details' },
-	{ path: '**', redirectTo: 'loan-details' }
+	{ path: '', redirectTo: path(STEP_PATHS.loanDetails), pathMatch: 'full' },
+	{
+		path: path(STEP_PATHS.loanDetails),
+		loadComponent: () =>
+			import('./features/loan-details/loan-details.component').then((m) => m.LoanDetailsComponent),
+		title: 'Loan details'
+	},
+	{ path: '**', redirectTo: path(STEP_PATHS.loanDetails) }
 ];

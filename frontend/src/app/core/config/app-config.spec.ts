@@ -1,7 +1,12 @@
 import { parseAppConfig } from './app-config';
 
 describe('parseAppConfig', () => {
-	const valid = { apiBaseUrl: 'https://api.example.com/api/', useMockApi: false, maxApplicants: 4, termsVersion: 'v1' };
+	const valid = {
+		apiBaseUrl: 'https://api.example.com/api/',
+		useMockApi: false,
+		maxApplicants: 4,
+		termsVersion: 'v1'
+	};
 
 	it('accepts a complete config and trims a trailing slash from the base URL', () => {
 		expect(parseAppConfig(valid)).toEqual({ ...valid, apiBaseUrl: 'https://api.example.com/api' });

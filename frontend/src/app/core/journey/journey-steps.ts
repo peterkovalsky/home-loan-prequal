@@ -1,6 +1,15 @@
+import { InjectionToken } from '@angular/core';
+
 export interface JourneyStep {
 	path: string;
 	title: string;
 }
 
-export const JOURNEY_STEPS: JourneyStep[] = [{ path: '/loan-details', title: 'Loan details' }];
+export const STEP_PATHS = {
+	loanDetails: '/loan-details'
+} as const;
+
+export const JOURNEY_STEPS: JourneyStep[] = [{ path: STEP_PATHS.loanDetails, title: 'Loan details' }];
+
+/** The ordered steps for this journey. A token so tests (and later, per-lender config) can supply their own. */
+export const JOURNEY = new InjectionToken<readonly JourneyStep[]>('JOURNEY', { factory: () => JOURNEY_STEPS });
