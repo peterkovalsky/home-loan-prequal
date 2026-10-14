@@ -34,6 +34,14 @@ export enum AuState {
 	WA = 1007
 }
 
+export enum Title {
+	Mr = 1,
+	Mrs = 2,
+	Ms = 3,
+	Miss = 4,
+	Dr = 5
+}
+
 export const LENDING_PURPOSE_OPTIONS: Option<LendingPurpose>[] = [
 	{ value: LendingPurpose.PurchaseExistingDwelling, label: 'Buy an existing home' },
 	{ value: LendingPurpose.PurchaseNewDwelling, label: 'Buy a new home' },
@@ -63,6 +71,14 @@ export const AU_STATE_OPTIONS: Option<AuState>[] = [
 	{ value: AuState.TAS, label: 'TAS' },
 	{ value: AuState.VIC, label: 'VIC' },
 	{ value: AuState.WA, label: 'WA' }
+];
+
+export const TITLE_OPTIONS: Option<Title>[] = [
+	{ value: Title.Mr, label: 'Mr' },
+	{ value: Title.Mrs, label: 'Mrs' },
+	{ value: Title.Ms, label: 'Ms' },
+	{ value: Title.Miss, label: 'Miss' },
+	{ value: Title.Dr, label: 'Dr' }
 ];
 
 export const PURCHASE_PURPOSES: LendingPurpose[] = [
