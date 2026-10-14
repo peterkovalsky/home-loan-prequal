@@ -42,6 +42,7 @@ public sealed class SaveLoanDetailsHandler(
             expected => repository.UpdateAsync(applicationId, details, expected, cancellationToken));
         if (!saved.IsSuccess)
         {
+            await unitOfWork.RollbackAsync(cancellationToken);
             return saved.Error!;
         }
 

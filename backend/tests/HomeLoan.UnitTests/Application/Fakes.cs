@@ -16,9 +16,17 @@ internal sealed class FakeUnitOfWork : IUnitOfWork
 {
     public int Commits { get; private set; }
 
+    public int Rollbacks { get; private set; }
+
     public Task CommitAsync(CancellationToken cancellationToken)
     {
         Commits++;
+        return Task.CompletedTask;
+    }
+
+    public Task RollbackAsync(CancellationToken cancellationToken)
+    {
+        Rollbacks++;
         return Task.CompletedTask;
     }
 }

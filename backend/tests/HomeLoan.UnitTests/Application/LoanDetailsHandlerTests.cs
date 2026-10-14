@@ -69,6 +69,7 @@ public class LoanDetailsHandlerTests
 
         Assert.Equal(ErrorKind.PreconditionFailed, result.Error?.Kind);
         Assert.Equal(0, unitOfWork.Commits);
+        Assert.Equal(1, unitOfWork.Rollbacks);
     }
 
     [Fact]

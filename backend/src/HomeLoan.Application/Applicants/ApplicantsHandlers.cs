@@ -58,6 +58,7 @@ public sealed class SaveApplicantsHandler(
             expected => repository.UpdateAsync(applicationId, applicants, terms, now, expected, cancellationToken));
         if (!saved.IsSuccess)
         {
+            await unitOfWork.RollbackAsync(cancellationToken);
             return saved.Error!;
         }
 
