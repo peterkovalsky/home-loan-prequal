@@ -32,5 +32,19 @@ services:
       sqlserver:
         condition: service_healthy
 
+  api:
+    build:
+      context: ./backend
+      target: api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # The least-privilege login created by the migrator, never sa.
+      ConnectionStrings__HomeLoan: Server=sqlserver,1433;Database=HomeLoan;User Id=homeloan_app;Password=${APP_DB_PASSWORD};Encrypt=True;TrustServerCertificate=True
+    ports:
+      - "5080:8080"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+
 volumes:
   sqldata:
