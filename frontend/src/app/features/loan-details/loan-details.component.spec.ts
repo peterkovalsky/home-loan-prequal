@@ -166,4 +166,14 @@ describe('LoanDetailsComponent', () => {
 		expect(component.errorMessages()).toEqual(['Loan amount is too high.']);
 		expect(component.saving()).toBeFalse();
 	});
+
+	it('caps amounts at the same limit as the API', () => {
+		create();
+
+		component.form.controls.loanAmount.setValue(100_000_001);
+		component.form.controls.estimatedPropertyValue.setValue(100_000_000);
+
+		expect(component.form.controls.loanAmount.hasError('max')).toBeTrue();
+		expect(component.form.controls.estimatedPropertyValue.valid).toBeTrue();
+	});
 });

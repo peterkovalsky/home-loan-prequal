@@ -21,6 +21,7 @@ import { ApplicationStore } from '../../core/state/application.store';
 import { StepActionsComponent } from '../../shared/components/step-actions/step-actions.component';
 import { StepCardComponent } from '../../shared/components/step-card/step-card.component';
 import { isInvalid } from '../../shared/forms/form-helpers';
+import { MAX_AMOUNT } from '../../shared/validation/loan-rules';
 import { depositWithinPropertyValueValidator } from '../../shared/validators/deposit.validator';
 
 @Component({
@@ -58,12 +59,20 @@ export class LoanDetailsComponent implements OnInit {
 				Validators.min(0),
 				Validators.max(20)
 			]),
-			loanAmount: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
+			loanAmount: this.fb.control<number | null>(null, [
+				Validators.required,
+				Validators.min(1),
+				Validators.max(MAX_AMOUNT)
+			]),
 			deposit: this.fb.control<number | null>({ value: null, disabled: true }, [
 				Validators.required,
 				Validators.min(0)
 			]),
-			estimatedPropertyValue: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
+			estimatedPropertyValue: this.fb.control<number | null>(null, [
+				Validators.required,
+				Validators.min(1),
+				Validators.max(MAX_AMOUNT)
+			]),
 			isAddressKnown: this.fb.nonNullable.control(false),
 			address: this.fb.control<string | null>({ value: null, disabled: true }, [
 				Validators.required,

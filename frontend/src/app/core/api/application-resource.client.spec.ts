@@ -27,9 +27,22 @@ describe('ApplicationResourceClient', () => {
 		let result: unknown;
 		client.get(7, 'applicants').subscribe((value) => (result = value));
 
-		http.expectOne({ method: 'GET', url }).flush(null);
+		http.expectOne({ method: 'GET', url }).flush({ a: 1 });
+
+		expect(result).toEqual({ a: 1 });
+	});
+
+	it('treats 404 as "nothing saved yet" and other errors as errors', () => {
+		let result: unknown = 'unset';
+		let failure: unknown;
+		client.get(7, 'applicants').subscribe((value) => (result = value));
+		http.expectOne(url).flush({ title: 'Not found' }, { status: 404, statusText: 'Not Found' });
+
+		client.get(7, 'applicants').subscribe({ error: (e: unknown) => (failure = e) });
+		http.expectOne(url).flush(null, { status: 500, statusText: 'Server Error' });
 
 		expect(result).toBeNull();
+		expect(failure).toBeDefined();
 	});
 
 	it('sends no If-Match before anything has been loaded', () => {

@@ -120,7 +120,13 @@
 						formControlName="loanAmount"
 						[class.is-invalid]="isInvalid(form.controls.loanAmount)"
 					/>
-					<div class="invalid-feedback">Please enter the amount you want to borrow.</div>
+					<div class="invalid-feedback">
+						@if (form.controls.loanAmount.hasError('max')) {
+							That's more than we can pre-qualify online.
+						} @else {
+							Please enter the amount you want to borrow.
+						}
+					</div>
 				</div>
 			</div>
 
@@ -162,7 +168,13 @@
 						formControlName="estimatedPropertyValue"
 						[class.is-invalid]="isInvalid(form.controls.estimatedPropertyValue)"
 					/>
-					<div class="invalid-feedback">Please enter an estimated value.</div>
+					<div class="invalid-feedback">
+						@if (form.controls.estimatedPropertyValue.hasError('max')) {
+							That's more than we can pre-qualify online.
+						} @else {
+							Please enter an estimated value.
+						}
+					</div>
 				</div>
 			</div>
 		</div>

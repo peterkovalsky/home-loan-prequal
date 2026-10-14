@@ -1,4 +1,4 @@
-import { Locator, Page, expect } from '@playwright/test';
+import { APIRequestContext, Locator, Page, expect } from '@playwright/test';
 
 export type ApplicantsAnswer = 'Just me' | 'Two of us' | 'More than two';
 
@@ -68,4 +68,15 @@ export async function agreeToTerms(page: Page): Promise<void> {
 	await expect(dialog).toBeVisible();
 	await dialog.getByRole('button', { name: 'I agree' }).click();
 	await expect(dialog).toBeHidden();
+}
+
+/**
+ * Against the real API (E2E_CONFIGURATION=local-api) application 1 persists between tests, so delete
+ * it first. Against the mock each test already gets a fresh browser context, and so fresh localStorage.
+ */
+export async function resetApplication(request: APIRequestContext): Promise<void> {
+	if (process.env['E2E_CONFIGURATION'] === 'local-api') {
+		const response = await request.delete('/api/applications/1');
+		expect(response.status()).toBe(204);
+	}
 }

@@ -60,12 +60,12 @@ describe('mock applicants API', () => {
 
 	afterEach(() => mockDb.clear());
 
-	it('returns null before anything is saved', fakeAsync(() => {
-		let loaded: unknown = 'unset';
-		http.get(url).subscribe((value) => (loaded = value));
+	it('returns 404 before anything is saved, as the API does', fakeAsync(() => {
+		let status: number | undefined;
+		http.get(url).subscribe({ error: (e: HttpErrorResponse) => (status = e.status) });
 		tick(MOCK_LATENCY_MS);
 
-		expect(loaded).toBeNull();
+		expect(status).toBe(404);
 	}));
 
 	it('needs loan details first', fakeAsync(() => {

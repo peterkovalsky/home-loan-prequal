@@ -7,6 +7,8 @@ const configuration = process.env['E2E_CONFIGURATION'] ?? 'development';
 export default defineConfig({
 	testDir: './e2e',
 	fullyParallel: false,
+	// Against the real API every test shares application 1, so run one at a time.
+	workers: configuration === 'local-api' ? 1 : undefined,
 	forbidOnly: !!process.env['CI'],
 	retries: process.env['CI'] ? 1 : 0,
 	reporter: process.env['CI'] ? [['github'], ['html', { open: 'never' }]] : [['list']],

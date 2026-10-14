@@ -21,10 +21,14 @@ function etagFor(key: string): string | null {
 	return version ? `"${version}"` : null;
 }
 
-/** GET a single-document resource, with its ETag. */
+/** GET a single-document resource with its ETag, or 404 when nothing has been saved (as the API does). */
 export function readResource(key: string): MockResult {
+	const value = mockDb.get(key);
+	if (value === null) {
+		return problem(404, 'Not found', 'Nothing has been saved yet.');
+	}
 	const etag = etagFor(key);
-	return ok(mockDb.get(key), etag ? { ETag: etag } : undefined);
+	return ok(value, etag ? { ETag: etag } : undefined);
 }
 
 /**
