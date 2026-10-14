@@ -49,12 +49,22 @@ export class LoanDetailsComponent implements OnInit {
 			propertyUsage: this.fb.control<PropertyUsage | null>(null, Validators.required),
 			numberOfApplicants: this.fb.control<NumberOfApplicants | null>(null, Validators.required),
 			isSameHousehold: this.fb.control<boolean | null>({ value: null, disabled: true }, Validators.required),
-			numberOfDependants: this.fb.control<number | null>(0, [Validators.required, Validators.min(0), Validators.max(20)]),
+			numberOfDependants: this.fb.control<number | null>(0, [
+				Validators.required,
+				Validators.min(0),
+				Validators.max(20)
+			]),
 			loanAmount: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
-			deposit: this.fb.control<number | null>({ value: null, disabled: true }, [Validators.required, Validators.min(0)]),
+			deposit: this.fb.control<number | null>({ value: null, disabled: true }, [
+				Validators.required,
+				Validators.min(0)
+			]),
 			estimatedPropertyValue: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
 			isAddressKnown: this.fb.nonNullable.control(false),
-			address: this.fb.control<string | null>({ value: null, disabled: true }, [Validators.required, Validators.maxLength(200)]),
+			address: this.fb.control<string | null>({ value: null, disabled: true }, [
+				Validators.required,
+				Validators.maxLength(200)
+			]),
 			state: this.fb.control<AuState | null>(null, Validators.required)
 		},
 		{ validators: depositWithinPropertyValueValidator }

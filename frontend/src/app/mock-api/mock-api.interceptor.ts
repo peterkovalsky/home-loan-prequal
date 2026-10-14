@@ -27,6 +27,11 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
 	}
 
 	return throwError(
-		() => new HttpErrorResponse({ status: 404, error: { message: `No mock route for ${req.method} ${path}` }, url: req.url })
+		() =>
+			new HttpErrorResponse({
+				status: 404,
+				error: { message: `No mock route for ${req.method} ${path}` },
+				url: req.url
+			})
 	);
 };

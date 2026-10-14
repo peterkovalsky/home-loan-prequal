@@ -145,7 +145,11 @@ describe('LoanDetailsComponent', () => {
 		fillValidForm();
 		service.save.and.returnValue(
 			throwError(
-				() => new HttpErrorResponse({ status: 400, error: { errors: { loanAmount: 'Loan amount is too high.' } } })
+				() =>
+					new HttpErrorResponse({
+						status: 400,
+						error: { errors: { loanAmount: 'Loan amount is too high.' } }
+					})
 			)
 		);
 
