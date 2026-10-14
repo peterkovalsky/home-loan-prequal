@@ -1,13 +1,15 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { delay, dematerialize, materialize, of, throwError } from 'rxjs';
-import { API_BASE_URL } from '../core/api/api.config';
+import { APP_CONFIG } from '../core/config/app-config';
 import { MOCK_ROUTES } from './mock-routes';
 
 export const MOCK_LATENCY_MS = 400;
 
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
+	const apiBasePath = new URL(inject(APP_CONFIG).apiBaseUrl, 'http://localhost').pathname;
 	const path = new URL(req.url, 'http://localhost').pathname;
-	if (!path.startsWith(API_BASE_URL)) {
+	if (!path.startsWith(apiBasePath)) {
 		return next(req);
 	}
 

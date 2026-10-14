@@ -1,0 +1,6 @@
+{
+	"apiBaseUrl": "/api",
+	"useMockApi": true,
+	"maxApplicants": 4,
+	"termsVersion": "2026-10"
+}

@@ -25,3 +25,6 @@ cdk.out/
 # Local secrets
 .env
 *.local.json
+
+# Local Claude Code preview config (machine-specific paths)
+.claude/launch.json

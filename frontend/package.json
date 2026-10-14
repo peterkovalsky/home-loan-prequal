@@ -5,6 +5,7 @@
 	"scripts": {
 		"ng": "ng",
 		"start": "ng serve",
+		"start:api": "ng serve --configuration local-api",
 		"build": "ng build",
 		"test": "ng test",
 		"test:ci": "ng test --watch=false --browsers=ChromeHeadless",

@@ -1,3 +1,2 @@
-export const API_BASE_URL = '/api';
-
+/** Fixed until the journey supports creating and resuming applications. */
 export const CURRENT_APPLICATION_ID = 1;

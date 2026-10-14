@@ -4,6 +4,7 @@ import { LoanDetails } from '../core/models/loan-details.model';
 import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage } from '../core/models/reference-data';
 import { MOCK_LATENCY_MS, mockApiInterceptor } from './mock-api.interceptor';
 import { mockDb } from './mock-db';
+import { provideTestAppConfig } from '../../testing/test-app-config';
 
 describe('mockApiInterceptor', () => {
 	let http: HttpClient;
@@ -26,7 +27,7 @@ describe('mockApiInterceptor', () => {
 	beforeEach(() => {
 		mockDb.clear();
 		TestBed.configureTestingModule({
-			providers: [provideHttpClient(withInterceptors([mockApiInterceptor]))]
+			providers: [provideTestAppConfig(), provideHttpClient(withInterceptors([mockApiInterceptor]))]
 		});
 		http = TestBed.inject(HttpClient);
 	});

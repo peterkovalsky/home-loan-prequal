@@ -1,5 +1,11 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
-import { appConfig } from './app/app.config';
+import { createAppConfig } from './app/app.config';
+import { loadAppConfig } from './app/core/config/app-config';
 
-bootstrapApplication(AppComponent, appConfig).catch((err) => console.error(err));
+loadAppConfig()
+	.then((config) => bootstrapApplication(AppComponent, createAppConfig(config)))
+	.catch((err) => {
+		console.error(err);
+		document.body.textContent = 'Sorry, the application could not start. Please try again later.';
+	});
