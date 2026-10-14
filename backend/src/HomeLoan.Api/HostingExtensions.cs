@@ -50,7 +50,6 @@ internal static class HostingExtensions
 
         builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
             context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);
-        builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
         builder.Services.AddExceptionHandler<DatabaseExceptionHandler>();
         // Same bad-request behaviour in every environment (the default only throws in Development).
         builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
@@ -65,6 +64,7 @@ internal static class HostingExtensions
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseMiddleware<CorrelationIdMiddleware>();
+        app.UseMiddleware<BadRequestMiddleware>();
         app.UseCors();
 
         if (app.Environment.IsDevelopment())
