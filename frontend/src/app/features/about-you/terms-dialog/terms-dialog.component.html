@@ -1,0 +1,25 @@
+<dialog #dialog class="terms-dialog" aria-labelledby="terms-title">
+	<div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+		<h2 id="terms-title" class="h5 mb-0">Pre-qualification and privacy terms</h2>
+		<button type="button" class="btn-close" aria-label="Close" (click)="close()"></button>
+	</div>
+	<div class="terms-dialog__body">
+		<p>
+			This is placeholder text. A pre-qualification is an indication only. It is not an offer or approval of
+			credit, and your circumstances will be assessed in full if you apply.
+		</p>
+		<p>
+			We collect the personal information in this form to check whether you are likely to be eligible for a home
+			loan. We may share it with the lender you choose and with service providers who help us run this check. We
+			handle your information under the Privacy Act 1988 (Cth) and our privacy policy.
+		</p>
+		<p class="mb-0">
+			By agreeing, each applicant confirms they consent to the details being provided and to being contacted about
+			this pre-qualification.
+		</p>
+	</div>
+	<div class="d-flex justify-content-end gap-2 border-top pt-3 mt-3">
+		<button type="button" class="btn btn-outline-secondary" (click)="close()">Close</button>
+		<button type="button" class="btn btn-primary" (click)="agree()">I agree</button>
+	</div>
+</dialog>

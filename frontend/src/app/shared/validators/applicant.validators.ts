@@ -9,7 +9,11 @@ import {
 
 const isEmpty = (value: unknown) => value == null || (typeof value === 'string' && value.trim() === '');
 
-/** Leave "is it filled in?" to Validators.required; these only check the format. */
+/** Like Validators.required, but whitespace alone doesn't count as an answer. */
+export const requiredText: ValidatorFn = (control: AbstractControl): ValidationErrors | null =>
+	isEmpty(control.value) ? { required: true } : null;
+
+/** Leave "is it filled in?" to the required validators; these only check the format. */
 export const auMobileValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null =>
 	isEmpty(control.value) || isValidAuMobile(control.value as string) ? null : { auMobile: true };
 

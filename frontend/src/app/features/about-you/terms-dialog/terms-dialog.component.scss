@@ -1,0 +1,15 @@
+.terms-dialog {
+	width: min(36rem, calc(100vw - 2rem));
+	padding: 1.5rem;
+	border: 1px solid var(--app-border);
+	border-radius: 0.5rem;
+
+	&::backdrop {
+		background: rgb(15 23 42 / 0.5);
+	}
+}
+
+.terms-dialog__body {
+	max-height: 50vh;
+	overflow-y: auto;
+}

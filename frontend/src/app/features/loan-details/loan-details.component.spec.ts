@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { ApplicantsService } from '../../core/api/applicants.service';
 import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
 import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage } from '../../core/models/reference-data';
+import { provideTestAppConfig } from '../../../testing/test-app-config';
 import { LoanDetailsComponent } from './loan-details.component';
 
 describe('LoanDetailsComponent', () => {
@@ -50,7 +52,12 @@ describe('LoanDetailsComponent', () => {
 		service = jasmine.createSpyObj<LoanDetailsService>('LoanDetailsService', ['get', 'save']);
 		TestBed.configureTestingModule({
 			imports: [LoanDetailsComponent],
-			providers: [provideRouter([]), { provide: LoanDetailsService, useValue: service }]
+			providers: [
+				provideRouter([]),
+				provideTestAppConfig(),
+				{ provide: LoanDetailsService, useValue: service },
+				{ provide: ApplicantsService, useValue: jasmine.createSpyObj('ApplicantsService', ['get', 'save']) }
+			]
 		});
 	});
 
@@ -121,10 +128,11 @@ describe('LoanDetailsComponent', () => {
 		expect(component.form.controls.loanAmount.touched).toBeTrue();
 	});
 
-	it('saves hidden answers as null', () => {
+	it('saves hidden answers as null and continues to About you', () => {
 		create();
 		fillValidForm();
 		service.save.and.callFake((details) => of(details));
+		const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
 
 		component.submit();
 
@@ -137,7 +145,7 @@ describe('LoanDetailsComponent', () => {
 				state: AuState.NSW
 			})
 		);
-		expect(component.saved()).toBeTrue();
+		expect(navigate).toHaveBeenCalledWith('/about-you');
 	});
 
 	it('shows validation messages returned by the API', () => {

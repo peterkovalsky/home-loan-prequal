@@ -34,3 +34,18 @@ export interface ApplicantsResponse {
 	applicants: SavedApplicant[];
 	consent: { termsVersion: string; acceptedAt: string };
 }
+
+/** Unsaved About you input, held in memory so Back (or any navigation) never loses it. */
+export interface ApplicantDraft {
+	title: Title | null;
+	firstName: string;
+	lastName: string;
+	email: string;
+	mobile: string;
+	dateOfBirth: string;
+}
+
+export interface ApplicantsDraft {
+	applicants: ApplicantDraft[];
+	termsAccepted: boolean;
+}

@@ -1,0 +1,173 @@
+<app-step-card
+	heading="Tell us about yourself"
+	subheading="We use these details to check your eligibility. They're kept private."
+	[loading]="loading()"
+	[errorMessages]="errorMessages()"
+>
+	@if (saved()) {
+		<div class="alert alert-success" role="status">Your details have been saved.</div>
+	}
+
+	<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+		@for (applicant of applicants.controls; track applicant; let i = $index) {
+			<section
+				class="applicant"
+				role="group"
+				[attr.aria-labelledby]="'applicant-heading-' + i"
+				[formGroup]="applicant"
+			>
+				<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+					<h2 class="h5 mb-0" [id]="'applicant-heading-' + i">Applicant {{ i + 1 }}</h2>
+					@if (i === 0) {
+						<span class="badge rounded-pill applicant__badge">Primary</span>
+					} @else {
+						<span class="small text-body-secondary">{{ reasonShown }}</span>
+					}
+					@if (canRemoveApplicant(i)) {
+						<button type="button" class="btn btn-link btn-sm ms-auto" (click)="removeApplicant(i)">
+							Remove applicant {{ i + 1 }}
+						</button>
+					}
+				</div>
+
+				<div class="row g-3 mb-3">
+					<div class="col-12 col-md-3">
+						<label class="form-label" [for]="'title-' + i">Title</label>
+						<select
+							class="form-select"
+							formControlName="title"
+							autocomplete="honorific-prefix"
+							[id]="'title-' + i"
+							[class.is-invalid]="isInvalid(applicant.controls.title)"
+						>
+							<option [ngValue]="null" disabled>Select</option>
+							@for (option of titleOptions; track option.value) {
+								<option [ngValue]="option.value">{{ option.label }}</option>
+							}
+						</select>
+						<div class="invalid-feedback">Please choose a title.</div>
+					</div>
+					<div class="col-12 col-md-4">
+						<label class="form-label" [for]="'firstName-' + i">First name</label>
+						<input
+							type="text"
+							class="form-control"
+							formControlName="firstName"
+							autocomplete="given-name"
+							[id]="'firstName-' + i"
+							[attr.maxlength]="nameMaxLength"
+							[class.is-invalid]="isInvalid(applicant.controls.firstName)"
+						/>
+						<div class="invalid-feedback">Please enter a first name.</div>
+					</div>
+					<div class="col-12 col-md-5">
+						<label class="form-label" [for]="'lastName-' + i">Last name</label>
+						<input
+							type="text"
+							class="form-control"
+							formControlName="lastName"
+							autocomplete="family-name"
+							[id]="'lastName-' + i"
+							[attr.maxlength]="nameMaxLength"
+							[class.is-invalid]="isInvalid(applicant.controls.lastName)"
+						/>
+						<div class="invalid-feedback">Please enter a last name.</div>
+					</div>
+				</div>
+
+				<div class="row g-3 mb-3">
+					<div class="col-12 col-md-6">
+						<label class="form-label" [for]="'email-' + i">
+							Email
+							@if (i > 0) {
+								<span class="fw-normal text-body-secondary">(optional)</span>
+							}
+						</label>
+						<input
+							type="email"
+							class="form-control"
+							formControlName="email"
+							autocomplete="email"
+							placeholder="name@example.com"
+							[id]="'email-' + i"
+							[class.is-invalid]="isInvalid(applicant.controls.email)"
+						/>
+						<div class="invalid-feedback">
+							@if (applicant.controls.email.hasError('required')) {
+								Please enter an email address.
+							} @else {
+								Enter a valid email address, e.g. name&#64;example.com
+							}
+						</div>
+					</div>
+					<div class="col-12 col-md-6">
+						<label class="form-label" [for]="'mobile-' + i">Mobile</label>
+						<input
+							type="tel"
+							inputmode="tel"
+							class="form-control"
+							formControlName="mobile"
+							autocomplete="tel"
+							placeholder="0412 345 678"
+							[id]="'mobile-' + i"
+							[class.is-invalid]="isInvalid(applicant.controls.mobile)"
+						/>
+						<div class="invalid-feedback">
+							@if (applicant.controls.mobile.hasError('required')) {
+								Please enter a mobile number.
+							} @else {
+								Enter a valid Australian mobile number, e.g. 0412 345 678
+							}
+						</div>
+					</div>
+				</div>
+
+				<div class="about-you__narrow">
+					<label class="form-label" [for]="'dateOfBirth-' + i">Date of birth</label>
+					<input
+						type="date"
+						class="form-control"
+						formControlName="dateOfBirth"
+						autocomplete="bday"
+						[id]="'dateOfBirth-' + i"
+						[max]="latestDateOfBirth"
+						[class.is-invalid]="isInvalid(applicant.controls.dateOfBirth)"
+					/>
+					<div class="invalid-feedback">{{ dateOfBirthMessage(applicant.controls.dateOfBirth) }}</div>
+				</div>
+			</section>
+		}
+
+		@if (canAddApplicant) {
+			<button type="button" class="btn btn-outline-secondary btn-sm mb-4" (click)="addApplicant()">
+				+ Add another applicant
+			</button>
+		}
+
+		<div class="border-top pt-4 mb-4">
+			<div class="form-check">
+				<input
+					id="termsAccepted"
+					type="checkbox"
+					class="form-check-input"
+					formControlName="termsAccepted"
+					aria-labelledby="terms-label"
+					[class.is-invalid]="isInvalid(form.controls.termsAccepted)"
+				/>
+				<!-- The terms button can't sit inside the <label> (nested interactive content), so the
+				     checkbox is named by the whole sentence via aria-labelledby. -->
+				<span id="terms-label" class="form-check-label">
+					<label for="termsAccepted">I agree to the</label>
+					<button type="button" class="btn btn-link p-0 align-baseline" (click)="terms.open()">
+						pre-qualification and privacy terms
+					</button>
+				</span>
+				<div class="invalid-feedback">Please agree to the terms to continue.</div>
+			</div>
+		</div>
+
+		<app-step-actions [saving]="saving()" [showBack]="true" (back)="back()" />
+	</form>
+
+	<app-terms-dialog #terms (agreed)="agreeToTerms()" />
+</app-step-card>

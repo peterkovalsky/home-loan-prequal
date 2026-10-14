@@ -1,5 +1,5 @@
 import { FormControl } from '@angular/forms';
-import { auMobileValidator, dateOfBirthValidator, emailAddressValidator } from './applicant.validators';
+import { auMobileValidator, dateOfBirthValidator, emailAddressValidator, requiredText } from './applicant.validators';
 
 describe('applicant validators', () => {
 	const errorsFor = (validator: (c: FormControl) => unknown, value: unknown) => validator(new FormControl(value));
@@ -11,6 +11,11 @@ describe('applicant validators', () => {
 			expect(errorsFor(emailAddressValidator, value)).toBeNull();
 			expect(errorsFor(dob, value)).toBeNull();
 		}
+	});
+
+	it('treats whitespace-only text as missing', () => {
+		expect(errorsFor(requiredText, '   ')).toEqual({ required: true });
+		expect(errorsFor(requiredText, 'Alex')).toBeNull();
 	});
 
 	it('flags an invalid mobile and email', () => {
