@@ -1,6 +1,6 @@
 # Implementation plan: overview
 
-Status: **agreed**, Phase 0 in progress.
+Status: **agreed**. Phase 0 done; Phase 1 plan in review.
 Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.md`, `03-aws.md`), written and reviewed before code.
 
 ## Principles
@@ -28,7 +28,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 - [x] `git init`; commit the starter untouched, then move it into `/frontend`
 - [x] Pin Node 22; baseline `npm run test:ci` passes (12/12)
 - [x] This plan, `CLAUDE.md` (root and frontend), `docs/ai-log.md`
-- [x] CI skeleton (GitHub Actions): front-end tests. Back-end and E2E jobs are added in their phases.
+- [x] CI skeleton (GitHub Actions): front-end build and tests, pushed to a private GitHub repo with a green first run. Back-end and E2E jobs are added in their phases.
 - [ ] `backend/CLAUDE.md`, written at the start of Phase 2 once the solution exists
 
 ## Phase 1: Front end (~2.5 h), detail in `01-frontend.md`
