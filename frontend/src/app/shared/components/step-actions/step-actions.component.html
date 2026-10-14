@@ -1,0 +1,13 @@
+<div class="d-flex align-items-center border-top pt-4">
+	@if (showBack()) {
+		<button type="button" class="btn btn-outline-secondary px-4" [disabled]="saving()" (click)="back.emit()">
+			Back
+		</button>
+	}
+	<button type="submit" class="btn btn-primary px-4 ms-auto" [disabled]="saving()">
+		@if (saving()) {
+			<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+		}
+		{{ continueLabel() }}
+	</button>
+</div>

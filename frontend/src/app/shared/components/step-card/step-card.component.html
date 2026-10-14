@@ -1,0 +1,26 @@
+<section class="card step-card">
+	<div class="card-body p-4">
+		<h1 class="h3 mb-1">{{ heading() }}</h1>
+		@if (subheading()) {
+			<p class="text-body-secondary mb-4">{{ subheading() }}</p>
+		}
+
+		@if (loading()) {
+			<div class="d-flex align-items-center gap-2 text-body-secondary" role="status">
+				<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+				{{ loadingText() }}
+			</div>
+		} @else {
+			@if (errorMessages().length) {
+				<div class="alert alert-danger" role="alert">
+					<ul class="mb-0 ps-3">
+						@for (message of errorMessages(); track message) {
+							<li>{{ message }}</li>
+						}
+					</ul>
+				</div>
+			}
+			<ng-content />
+		}
+	</div>
+</section>

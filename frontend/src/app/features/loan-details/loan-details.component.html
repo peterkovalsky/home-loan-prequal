@@ -1,238 +1,214 @@
-<section class="card loan-details">
-	<div class="card-body p-4">
-		<h1 class="h3 mb-1">Let's start with your loan</h1>
-		<p class="text-body-secondary mb-4">It only takes a few minutes. You can change these answers later.</p>
+<app-step-card
+	heading="Let's start with your loan"
+	subheading="It only takes a few minutes. You can change these answers later."
+	[loading]="loading()"
+	[errorMessages]="errorMessages()"
+>
+	@if (saved()) {
+		<div class="alert alert-success" role="status">Your loan details have been saved.</div>
+	}
 
-		@if (loading()) {
-			<div class="d-flex align-items-center gap-2 text-body-secondary" role="status">
-				<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-				Loading your details...
+	<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+		<div class="mb-4">
+			<label class="form-label" for="purpose">What's the plan?</label>
+			<select
+				id="purpose"
+				class="form-select"
+				formControlName="purpose"
+				[class.is-invalid]="isInvalid(form.controls.purpose)"
+			>
+				<option [ngValue]="null" disabled>Select an option</option>
+				@for (option of purposeOptions; track option.value) {
+					<option [ngValue]="option.value">{{ option.label }}</option>
+				}
+			</select>
+			<div class="invalid-feedback">Please tell us what the loan is for.</div>
+		</div>
+
+		<fieldset class="mb-4">
+			<legend class="form-label fs-6">What will the property be used for?</legend>
+			<div class="d-flex flex-wrap gap-2">
+				@for (option of propertyUsageOptions; track option.value) {
+					<input
+						type="radio"
+						class="btn-check"
+						formControlName="propertyUsage"
+						[id]="'propertyUsage-' + option.value"
+						[value]="option.value"
+					/>
+					<label class="btn btn-outline-secondary" [for]="'propertyUsage-' + option.value">
+						{{ option.label }}
+					</label>
+				}
+			</div>
+			@if (isInvalid(form.controls.propertyUsage)) {
+				<div class="invalid-feedback d-block">Please choose how the property will be used.</div>
+			}
+		</fieldset>
+
+		<fieldset class="mb-4">
+			<legend class="form-label fs-6">Who's applying for the loan?</legend>
+			<div class="d-flex flex-wrap gap-2">
+				@for (option of applicantOptions; track option.value) {
+					<input
+						type="radio"
+						class="btn-check"
+						formControlName="numberOfApplicants"
+						[id]="'applicants-' + option.value"
+						[value]="option.value"
+					/>
+					<label class="btn btn-outline-secondary" [for]="'applicants-' + option.value">
+						{{ option.label }}
+					</label>
+				}
+			</div>
+			@if (isInvalid(form.controls.numberOfApplicants)) {
+				<div class="invalid-feedback d-block">Please tell us who is applying.</div>
+			}
+		</fieldset>
+
+		@if (showSameHousehold) {
+			<fieldset class="mb-4">
+				<legend class="form-label fs-6">Do you all live in the same household?</legend>
+				<div class="d-flex flex-wrap gap-2">
+					<input
+						type="radio"
+						class="btn-check"
+						id="sameHousehold-yes"
+						formControlName="isSameHousehold"
+						[value]="true"
+					/>
+					<label class="btn btn-outline-secondary" for="sameHousehold-yes">Yes</label>
+					<input
+						type="radio"
+						class="btn-check"
+						id="sameHousehold-no"
+						formControlName="isSameHousehold"
+						[value]="false"
+					/>
+					<label class="btn btn-outline-secondary" for="sameHousehold-no">No</label>
+				</div>
+				@if (isInvalid(form.controls.isSameHousehold)) {
+					<div class="invalid-feedback d-block">Please answer this question.</div>
+				}
+			</fieldset>
+		}
+
+		<div class="mb-4 loan-details__narrow">
+			<label class="form-label" for="numberOfDependants">Number of dependants</label>
+			<input
+				id="numberOfDependants"
+				type="number"
+				min="0"
+				class="form-control"
+				formControlName="numberOfDependants"
+				[class.is-invalid]="isInvalid(form.controls.numberOfDependants)"
+			/>
+			<div class="invalid-feedback">Enter a number between 0 and 20.</div>
+		</div>
+
+		<div class="row g-3 mb-4">
+			<div class="col-12 col-md-4">
+				<label class="form-label" for="loanAmount">Borrowing how much?</label>
+				<div class="input-group has-validation">
+					<span class="input-group-text">$</span>
+					<input
+						id="loanAmount"
+						type="number"
+						min="1"
+						class="form-control"
+						formControlName="loanAmount"
+						[class.is-invalid]="isInvalid(form.controls.loanAmount)"
+					/>
+					<div class="invalid-feedback">Please enter the amount you want to borrow.</div>
+				</div>
+			</div>
+
+			@if (showDeposit) {
+				<div class="col-12 col-md-4">
+					<label class="form-label" for="deposit">What's your deposit?</label>
+					<div class="input-group has-validation">
+						<span class="input-group-text">$</span>
+						<input
+							id="deposit"
+							type="number"
+							min="0"
+							class="form-control"
+							formControlName="deposit"
+							[class.is-invalid]="
+								isInvalid(form.controls.deposit) || form.hasError('depositExceedsPropertyValue')
+							"
+						/>
+						<div class="invalid-feedback">
+							@if (form.hasError('depositExceedsPropertyValue')) {
+								Your deposit can't be more than the property value.
+							} @else {
+								Please enter your deposit.
+							}
+						</div>
+					</div>
+				</div>
+			}
+
+			<div class="col-12 col-md-4">
+				<label class="form-label" for="estimatedPropertyValue">Estimated property value</label>
+				<div class="input-group has-validation">
+					<span class="input-group-text">$</span>
+					<input
+						id="estimatedPropertyValue"
+						type="number"
+						min="1"
+						class="form-control"
+						formControlName="estimatedPropertyValue"
+						[class.is-invalid]="isInvalid(form.controls.estimatedPropertyValue)"
+					/>
+					<div class="invalid-feedback">Please enter an estimated value.</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="form-check form-switch mb-3">
+			<input
+				class="form-check-input"
+				type="checkbox"
+				role="switch"
+				id="isAddressKnown"
+				formControlName="isAddressKnown"
+			/>
+			<label class="form-check-label" for="isAddressKnown">I know the address of the property</label>
+		</div>
+
+		@if (isAddressKnown) {
+			<div class="mb-4">
+				<label class="form-label" for="address">Property address</label>
+				<input
+					id="address"
+					type="text"
+					class="form-control"
+					autocomplete="street-address"
+					formControlName="address"
+					[class.is-invalid]="isInvalid(form.controls.address)"
+				/>
+				<div class="invalid-feedback">Please enter the property address.</div>
 			</div>
 		} @else {
-			@if (errorMessages().length) {
-				<div class="alert alert-danger" role="alert">
-					<ul class="mb-0 ps-3">
-						@for (message of errorMessages(); track message) {
-							<li>{{ message }}</li>
-						}
-					</ul>
-				</div>
-			}
-
-			@if (saved()) {
-				<div class="alert alert-success" role="status">Your loan details have been saved.</div>
-			}
-
-			<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-				<div class="mb-4">
-					<label class="form-label" for="purpose">What's the plan?</label>
-					<select
-						id="purpose"
-						class="form-select"
-						formControlName="purpose"
-						[class.is-invalid]="isInvalid(form.controls.purpose)"
-					>
-						<option [ngValue]="null" disabled>Select an option</option>
-						@for (option of purposeOptions; track option.value) {
-							<option [ngValue]="option.value">{{ option.label }}</option>
-						}
-					</select>
-					<div class="invalid-feedback">Please tell us what the loan is for.</div>
-				</div>
-
-				<fieldset class="mb-4">
-					<legend class="form-label fs-6">What will the property be used for?</legend>
-					<div class="d-flex flex-wrap gap-2">
-						@for (option of propertyUsageOptions; track option.value) {
-							<input
-								type="radio"
-								class="btn-check"
-								formControlName="propertyUsage"
-								[id]="'propertyUsage-' + option.value"
-								[value]="option.value"
-							/>
-							<label class="btn btn-outline-secondary" [for]="'propertyUsage-' + option.value">
-								{{ option.label }}
-							</label>
-						}
-					</div>
-					@if (isInvalid(form.controls.propertyUsage)) {
-						<div class="invalid-feedback d-block">Please choose how the property will be used.</div>
+			<div class="mb-4 loan-details__narrow">
+				<label class="form-label" for="state">In which state?</label>
+				<select
+					id="state"
+					class="form-select"
+					formControlName="state"
+					[class.is-invalid]="isInvalid(form.controls.state)"
+				>
+					<option [ngValue]="null" disabled>Select a state</option>
+					@for (option of stateOptions; track option.value) {
+						<option [ngValue]="option.value">{{ option.label }}</option>
 					}
-				</fieldset>
-
-				<fieldset class="mb-4">
-					<legend class="form-label fs-6">Who's applying for the loan?</legend>
-					<div class="d-flex flex-wrap gap-2">
-						@for (option of applicantOptions; track option.value) {
-							<input
-								type="radio"
-								class="btn-check"
-								formControlName="numberOfApplicants"
-								[id]="'applicants-' + option.value"
-								[value]="option.value"
-							/>
-							<label class="btn btn-outline-secondary" [for]="'applicants-' + option.value">
-								{{ option.label }}
-							</label>
-						}
-					</div>
-					@if (isInvalid(form.controls.numberOfApplicants)) {
-						<div class="invalid-feedback d-block">Please tell us who is applying.</div>
-					}
-				</fieldset>
-
-				@if (showSameHousehold) {
-					<fieldset class="mb-4">
-						<legend class="form-label fs-6">Do you all live in the same household?</legend>
-						<div class="d-flex flex-wrap gap-2">
-							<input
-								type="radio"
-								class="btn-check"
-								id="sameHousehold-yes"
-								formControlName="isSameHousehold"
-								[value]="true"
-							/>
-							<label class="btn btn-outline-secondary" for="sameHousehold-yes">Yes</label>
-							<input
-								type="radio"
-								class="btn-check"
-								id="sameHousehold-no"
-								formControlName="isSameHousehold"
-								[value]="false"
-							/>
-							<label class="btn btn-outline-secondary" for="sameHousehold-no">No</label>
-						</div>
-						@if (isInvalid(form.controls.isSameHousehold)) {
-							<div class="invalid-feedback d-block">Please answer this question.</div>
-						}
-					</fieldset>
-				}
-
-				<div class="mb-4 loan-details__narrow">
-					<label class="form-label" for="numberOfDependants">Number of dependants</label>
-					<input
-						id="numberOfDependants"
-						type="number"
-						min="0"
-						class="form-control"
-						formControlName="numberOfDependants"
-						[class.is-invalid]="isInvalid(form.controls.numberOfDependants)"
-					/>
-					<div class="invalid-feedback">Enter a number between 0 and 20.</div>
-				</div>
-
-				<div class="row g-3 mb-4">
-					<div class="col-12 col-md-4">
-						<label class="form-label" for="loanAmount">Borrowing how much?</label>
-						<div class="input-group has-validation">
-							<span class="input-group-text">$</span>
-							<input
-								id="loanAmount"
-								type="number"
-								min="1"
-								class="form-control"
-								formControlName="loanAmount"
-								[class.is-invalid]="isInvalid(form.controls.loanAmount)"
-							/>
-							<div class="invalid-feedback">Please enter the amount you want to borrow.</div>
-						</div>
-					</div>
-
-					@if (showDeposit) {
-						<div class="col-12 col-md-4">
-							<label class="form-label" for="deposit">What's your deposit?</label>
-							<div class="input-group has-validation">
-								<span class="input-group-text">$</span>
-								<input
-									id="deposit"
-									type="number"
-									min="0"
-									class="form-control"
-									formControlName="deposit"
-									[class.is-invalid]="
-										isInvalid(form.controls.deposit) || form.hasError('depositExceedsPropertyValue')
-									"
-								/>
-								<div class="invalid-feedback">
-									@if (form.hasError('depositExceedsPropertyValue')) {
-										Your deposit can't be more than the property value.
-									} @else {
-										Please enter your deposit.
-									}
-								</div>
-							</div>
-						</div>
-					}
-
-					<div class="col-12 col-md-4">
-						<label class="form-label" for="estimatedPropertyValue">Estimated property value</label>
-						<div class="input-group has-validation">
-							<span class="input-group-text">$</span>
-							<input
-								id="estimatedPropertyValue"
-								type="number"
-								min="1"
-								class="form-control"
-								formControlName="estimatedPropertyValue"
-								[class.is-invalid]="isInvalid(form.controls.estimatedPropertyValue)"
-							/>
-							<div class="invalid-feedback">Please enter an estimated value.</div>
-						</div>
-					</div>
-				</div>
-
-				<div class="form-check form-switch mb-3">
-					<input
-						class="form-check-input"
-						type="checkbox"
-						role="switch"
-						id="isAddressKnown"
-						formControlName="isAddressKnown"
-					/>
-					<label class="form-check-label" for="isAddressKnown">I know the address of the property</label>
-				</div>
-
-				@if (isAddressKnown) {
-					<div class="mb-4">
-						<label class="form-label" for="address">Property address</label>
-						<input
-							id="address"
-							type="text"
-							class="form-control"
-							autocomplete="street-address"
-							formControlName="address"
-							[class.is-invalid]="isInvalid(form.controls.address)"
-						/>
-						<div class="invalid-feedback">Please enter the property address.</div>
-					</div>
-				} @else {
-					<div class="mb-4 loan-details__narrow">
-						<label class="form-label" for="state">In which state?</label>
-						<select
-							id="state"
-							class="form-select"
-							formControlName="state"
-							[class.is-invalid]="isInvalid(form.controls.state)"
-						>
-							<option [ngValue]="null" disabled>Select a state</option>
-							@for (option of stateOptions; track option.value) {
-								<option [ngValue]="option.value">{{ option.label }}</option>
-							}
-						</select>
-						<div class="invalid-feedback">Please select a state.</div>
-					</div>
-				}
-
-				<div class="d-flex justify-content-end border-top pt-4">
-					<button type="submit" class="btn btn-primary px-4" [disabled]="saving()">
-						@if (saving()) {
-							<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-						}
-						Continue
-					</button>
-				</div>
-			</form>
+				</select>
+				<div class="invalid-feedback">Please select a state.</div>
+			</div>
 		}
-	</div>
-</section>
+
+		<app-step-actions [saving]="saving()" />
+	</form>
+</app-step-card>

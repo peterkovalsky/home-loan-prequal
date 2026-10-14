@@ -3,8 +3,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, merge } from 'rxjs';
 import { toErrorMessages } from '../../core/api/api-errors';
-import { CURRENT_APPLICATION_ID } from '../../core/api/api.config';
-import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { STEP_PATHS } from '../../core/journey/journey-steps';
 import { JourneyService } from '../../core/journey/journey.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
@@ -19,18 +17,22 @@ import {
 	PURCHASE_PURPOSES,
 	PropertyUsage
 } from '../../core/models/reference-data';
+import { ApplicationStore } from '../../core/state/application.store';
+import { StepActionsComponent } from '../../shared/components/step-actions/step-actions.component';
+import { StepCardComponent } from '../../shared/components/step-card/step-card.component';
+import { isInvalid } from '../../shared/forms/form-helpers';
 import { depositWithinPropertyValueValidator } from '../../shared/validators/deposit.validator';
 
 @Component({
 	selector: 'app-loan-details',
-	imports: [ReactiveFormsModule],
+	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent],
 	templateUrl: './loan-details.component.html',
 	styleUrl: './loan-details.component.scss',
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoanDetailsComponent implements OnInit {
 	private readonly fb = inject(FormBuilder);
-	private readonly loanDetailsService = inject(LoanDetailsService);
+	private readonly store = inject(ApplicationStore);
 	private readonly journey = inject(JourneyService);
 	private readonly destroyRef = inject(DestroyRef);
 
@@ -38,6 +40,7 @@ export class LoanDetailsComponent implements OnInit {
 	readonly propertyUsageOptions = PROPERTY_USAGE_OPTIONS;
 	readonly applicantOptions = NUMBER_OF_APPLICANTS_OPTIONS;
 	readonly stateOptions = AU_STATE_OPTIONS;
+	readonly isInvalid = isInvalid;
 
 	readonly loading = signal(true);
 	readonly saving = signal(false);
@@ -86,8 +89,8 @@ export class LoanDetailsComponent implements OnInit {
 	ngOnInit(): void {
 		this.watchConditionalFields();
 
-		this.loanDetailsService
-			.get(CURRENT_APPLICATION_ID)
+		this.store
+			.ensureLoanDetails()
 			.pipe(
 				finalize(() => this.loading.set(false)),
 				takeUntilDestroyed(this.destroyRef)
@@ -103,10 +106,6 @@ export class LoanDetailsComponent implements OnInit {
 			});
 	}
 
-	isInvalid(control: AbstractControl): boolean {
-		return control.invalid && control.touched;
-	}
-
 	submit(): void {
 		this.saved.set(false);
 		this.errorMessages.set([]);
@@ -116,8 +115,8 @@ export class LoanDetailsComponent implements OnInit {
 		}
 
 		this.saving.set(true);
-		this.loanDetailsService
-			.save(this.toLoanDetails())
+		this.store
+			.saveLoanDetails(this.toLoanDetails())
 			.pipe(
 				finalize(() => this.saving.set(false)),
 				takeUntilDestroyed(this.destroyRef)
@@ -161,7 +160,7 @@ export class LoanDetailsComponent implements OnInit {
 	private toLoanDetails(): LoanDetails {
 		const value = this.form.getRawValue();
 		return {
-			applicationId: CURRENT_APPLICATION_ID,
+			applicationId: this.store.applicationId,
 			purpose: value.purpose!,
 			propertyUsage: value.propertyUsage!,
 			numberOfApplicants: value.numberOfApplicants!,
