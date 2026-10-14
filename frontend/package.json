@@ -9,6 +9,7 @@
 		"build": "ng build",
 		"test": "ng test",
 		"test:ci": "ng test --watch=false --browsers=ChromeHeadless",
+		"e2e": "playwright test",
 		"lint": "ng lint",
 		"format": "prettier --write --no-error-on-unmatched-pattern \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\"",
 		"format:check": "prettier --check --no-error-on-unmatched-pattern \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\""
@@ -30,6 +31,7 @@
 		"@angular/cli": "^19.2.15",
 		"@angular/compiler-cli": "^19.2.14",
 		"@angular/platform-browser-dynamic": "^19.2.25",
+		"@playwright/test": "^1.64.0",
 		"@types/jasmine": "~5.1.4",
 		"angular-eslint": "19.8.1",
 		"eslint": "^9.28.0",
