@@ -24,8 +24,10 @@ Take-home exercise: an Angular front end, a .NET 8 API with SQL Server (Dapper),
 | Area | Command |
 |---|---|
 | Front end install | `cd frontend && nvm use && npm ci` |
-| Front end dev server | `cd frontend && npm start` (http://localhost:4200) |
-| Front end tests | `cd frontend && npm run test:ci` |
+| Front end dev server (mock API) | `cd frontend && npm start` (http://localhost:4200) |
+| Front end dev server (local API) | `cd frontend && npm run start:api` (proxies `/api` to :5080) |
+| Front end checks | `cd frontend && npm run format:check && npm run lint && npm run test:ci` |
+| Front end E2E | `cd frontend && npm run e2e` |
 
 (Back-end, E2E and infra commands are added as each phase lands.)
 

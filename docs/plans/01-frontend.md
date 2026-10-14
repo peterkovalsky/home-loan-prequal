@@ -1,6 +1,6 @@
 # Phase 1: Front end ("About you" step)
 
-Status: **draft, for review.** Parent plan: [00-overview.md](00-overview.md).
+Status: **done.** Parent plan: [00-overview.md](00-overview.md). See "As built" at the end for where the code differs from this plan.
 
 ## Goals
 
@@ -236,3 +236,23 @@ export interface ApplicantsResponse {
 - **Mapping server field errors onto individual controls.** It is worth doing, but the alert list is the existing pattern. Listed in NOTES under improvements.
 - **Rejecting duplicate emails across applicants.** Couples often share an inbox, so this is a lender policy decision. Listed in NOTES.
 - **A metadata-driven form engine.** The config seam (`maxApplicants`, `termsVersion`, the title list) is the first step towards one. NOTES describes how this would grow into per-lender field metadata.
+
+## As built
+
+Delivered in 12 commits (`fe01183` to the docs commit), with 108 unit tests and 6 Playwright journeys. Where the code differs from the plan above:
+
+| Planned | Built | Why |
+|---|---|---|
+| One `StepLayoutComponent` | `StepCardComponent` plus `StepActionsComponent` | Continue must be a submit button *inside* the step's `<form>`, but the card wraps the form. Two pieces avoid passing the form around. |
+| A separate form-errors component | The error summary lives in `StepCardComponent` | Every step shows it in the same place, so a separate component added nothing. |
+| `JOURNEY_STEPS` read directly | A `JOURNEY` injection token, defaulting to `JOURNEY_STEPS` | Tests supply their own steps without patching a `readonly` field. It is also the seam for per-lender journeys. |
+| The store caches values | A `CachedResource<T>` helper | Shares in-flight requests between the guard, the step and the nav; failed loads aren't cached. |
+| The mock returns `412` on a stale save | `412` when stale, `428` when `If-Match` is missing on an existing resource | Matches RFC 6585 and what the .NET API will do. |
+| A plain `<label>` around the terms link | `aria-labelledby` on the checkbox | A button inside a `<label>` is nested interactive content, and it cut the checkbox's accessible name down to "I agree to the". |
+| — | A `CLOCK` injection token | Makes the "18 or older" rule deterministic in component tests. |
+| — | ESLint enforces `OnPush`; `format:check` runs in CI | Stops drift. |
+
+Found while verifying in the browser (and fixed):
+
+- The dev server's watcher stuck on a build that failed partway through editing. Fixed by restarting it; it was not a code problem.
+- The checkbox's accessible name, as above.

@@ -1,6 +1,6 @@
 # Implementation plan: overview
 
-Status: **agreed**. Phase 0 done; Phase 1 plan in review.
+Status: **agreed**. Phases 0 and 1 done; Phase 2 next.
 Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.md`, `03-aws.md`), written and reviewed before code.
 
 ## Principles
@@ -31,7 +31,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 - [x] CI skeleton (GitHub Actions): front-end build and tests, pushed to a private GitHub repo with a green first run. Back-end and E2E jobs are added in their phases.
 - [ ] `backend/CLAUDE.md`, written at the start of Phase 2 once the solution exists
 
-## Phase 1: Front end (~2.5 h), detail in `01-frontend.md`
+## Phase 1: Front end (~2.5 h), detail in `01-frontend.md` (done)
 
 **1a. Refactor first, without changing behaviour** (existing tests must stay green):
 
@@ -39,7 +39,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 - Runtime config (`config.json` loaded with `provideAppInitializer`): `apiBaseUrl`, `useMockApi`, `maxApplicants`, `termsVersion`. Build once, run against the mock, local or Lambda API.
 - Mock interceptor registered only when `useMockApi` is true.
 - HTTP error interceptor that normalises server errors (accepts both `string` and `string[]` per field).
-- Shared UI: `StepLayoutComponent` (card, error alert, Back/Continue footer) and a form-errors component.
+- Shared UI: `StepCardComponent` (card, loading state, error summary) and `StepActionsComponent` (Back/Continue footer).
 - Shared helpers: `isInvalid`, reusable validators.
 - Lazy routes (`loadComponent`), `OnPush` everywhere, angular-eslint.
 

@@ -15,16 +15,22 @@
 - **Reference data:** enums and option lists live in `core/models/reference-data.ts`. Numeric codes are shared with the back end, so never renumber them.
 - **API errors:** `400 { errors: { field: message } }`. Map them through the shared error helper, not per component.
 
-## Adding a journey step
+## Adding a journey step or field
 
-1. Add an entry to `core/journey/journey-steps.ts`.
-2. Add a lazy route in `app.routes.ts`.
-3. Create the model in `core/models`, the service in `core/api`, and the mock route in `mock-api/mock-routes.ts`.
-4. Create the feature component using `StepLayoutComponent`.
-5. Write specs for the component, the service or mock route, and any new validators.
+Use the repo skill `.claude/skills/add-journey-step/SKILL.md`. It has the step-by-step guide and the "adding a field" checklist.
+
+## Key building blocks
+
+- **`APP_CONFIG`:** runtime `config.json`, chosen per build configuration from `config/<env>/`.
+- **`JourneyService`:** next and previous steps; never hard-code a neighbouring step.
+- **`ApplicationStore`:** cached journey data, the About you draft, `requiredApplicantCount`, `completedSteps`.
+- **`ApplicationResourceClient`:** GET and PUT on `/applications/{id}/{resource}`, with `ETag` and `If-Match`.
+- **`StepCardComponent` and `StepActionsComponent`:** the step frame and the Back/Continue footer.
+- **`shared/validation`:** pure rule functions shared by the form validators and the mock.
 
 ## Testing
 
 - `npm run test:ci` runs Karma and Jasmine headless.
+- `npm run e2e` runs the Playwright journeys against the mock (it starts its own dev server on port 4300). `E2E_CONFIGURATION=local-api npm run e2e` runs them against the real API.
 - Date-dependent rules use an injected clock or `jasmine.clock()`, never the real `Date.now()`.
 - Mock service dependencies with `jasmine.createSpyObj`, following the pattern in `loan-details.component.spec.ts`.
