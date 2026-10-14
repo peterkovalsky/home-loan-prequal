@@ -5,6 +5,7 @@ import { CURRENT_APPLICATION_ID } from '../api/api.config';
 import { ApplicantsService } from '../api/applicants.service';
 import { LoanDetailsService } from '../api/loan-details.service';
 import { APP_CONFIG } from '../config/app-config';
+import { STEP_PATHS } from '../journey/journey-steps';
 import { ApplicantsDraft, ApplicantsResponse, SaveApplicantsRequest } from '../models/applicant.model';
 import { LoanDetails } from '../models/loan-details.model';
 import { CachedResource } from './cached-resource';
@@ -30,6 +31,29 @@ export class ApplicationStore {
 	readonly requiredApplicantCount = computed<ApplicantCountRange | null>(() => {
 		const details = this.loanDetails();
 		return details ? applicantCountRange(details.numberOfApplicants, this.config.maxApplicants) : null;
+	});
+
+	/**
+	 * Steps whose saved data is complete for the current answers. About you only counts if the saved
+	 * applicants still fit the loan details' applicant count and were agreed under the current terms.
+	 */
+	readonly completedSteps = computed<ReadonlySet<string>>(() => {
+		const completed = new Set<string>();
+		if (this.loanDetails()) {
+			completed.add(STEP_PATHS.loanDetails);
+		}
+		const saved = this.applicants();
+		const range = this.requiredApplicantCount();
+		if (
+			saved &&
+			range &&
+			saved.applicants.length >= range.min &&
+			saved.applicants.length <= range.max &&
+			saved.consent.termsVersion === this.config.termsVersion
+		) {
+			completed.add(STEP_PATHS.aboutYou);
+		}
+		return completed;
 	});
 
 	ensureLoanDetails(): Observable<LoanDetails | null> {

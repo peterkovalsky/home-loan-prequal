@@ -66,4 +66,40 @@ describe('ApplicationStore', () => {
 		expect(store.applicants()).toBe(saved);
 		expect(applicantsService.save).toHaveBeenCalledWith(1, {} as SaveApplicantsRequest);
 	});
+
+	describe('completedSteps', () => {
+		const applicants = (count: number, termsVersion = 'test-terms') =>
+			({
+				applicationId: 1,
+				applicants: new Array(count).fill({}),
+				consent: { termsVersion }
+			}) as ApplicantsResponse;
+
+		function load(numberOfApplicants: NumberOfApplicants | null, saved: ApplicantsResponse | null): void {
+			loanDetailsService.get.and.returnValue(of(numberOfApplicants ? details(numberOfApplicants) : null));
+			applicantsService.get.and.returnValue(of(saved));
+			store.ensureLoanDetails().subscribe();
+			store.ensureApplicants().subscribe();
+		}
+
+		it('is empty before anything is saved', () => {
+			load(null, null);
+			expect([...store.completedSteps()]).toEqual([]);
+		});
+
+		it('includes both steps when the saved applicants fit the loan details', () => {
+			load(NumberOfApplicants.Couple, applicants(2));
+			expect([...store.completedSteps()]).toEqual(['/loan-details', '/about-you']);
+		});
+
+		it('drops About you when the applicant count no longer matches', () => {
+			load(NumberOfApplicants.Single, applicants(2));
+			expect(store.completedSteps().has('/about-you')).toBeFalse();
+		});
+
+		it('drops About you when the saved consent is for older terms', () => {
+			load(NumberOfApplicants.Couple, applicants(2, 'older-terms'));
+			expect(store.completedSteps().has('/about-you')).toBeFalse();
+		});
+	});
 });
