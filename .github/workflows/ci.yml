@@ -51,5 +51,19 @@ jobs:
             frontend/test-results
           retention-days: 7
 
-  # Phase 2 adds: backend (dotnet build + unit + integration tests with Testcontainers)
-  # and an e2e run against docker compose (E2E_CONFIGURATION=local-api).
+  backend:
+    name: Back end
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+      - run: dotnet restore
+      - run: dotnet build --no-restore --configuration Release
+      - run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
+
+  # Phase 2 adds an e2e run against docker compose (E2E_CONFIGURATION=local-api).

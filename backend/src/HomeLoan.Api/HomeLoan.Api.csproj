@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\HomeLoan.Application\HomeLoan.Application.csproj" />
+    <ProjectReference Include="..\HomeLoan.Infrastructure\HomeLoan.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HomeLoan.UnitTests" />
+    <InternalsVisibleTo Include="HomeLoan.IntegrationTests" />
+  </ItemGroup>
+</Project>

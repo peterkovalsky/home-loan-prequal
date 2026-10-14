@@ -1,0 +1,32 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_readonly_field = true:warning
+csharp_prefer_braces = true:warning
+# IDE0005 (unnecessary usings) needs XML docs on to report at build time; keep as a suggestion.
+dotnet_diagnostic.IDE0005.severity = suggestion
+# Not a library: no SynchronizationContext to capture, so ConfigureAwait(false) is noise.
+dotnet_diagnostic.CA2007.severity = none
+
+[*.{csproj,props,targets,json,yml,yaml}]
+indent_size = 2
+
+[*.sql]
+indent_size = 4
+
+[tests/**.cs]
+# Test names read as sentences: Method_State_Expected.
+dotnet_diagnostic.CA1707.severity = none
+# xUnit owns the test class lifetime.
+dotnet_diagnostic.CA1515.severity = none
