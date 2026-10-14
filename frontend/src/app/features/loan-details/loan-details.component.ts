@@ -1,8 +1,8 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, merge } from 'rxjs';
+import { toErrorMessages } from '../../core/api/api-errors';
 import { CURRENT_APPLICATION_ID } from '../../core/api/api.config';
 import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { STEP_PATHS } from '../../core/journey/journey-steps';
@@ -124,7 +124,7 @@ export class LoanDetailsComponent implements OnInit {
 			)
 			.subscribe({
 				next: () => this.saved.set(!this.journey.goNext(STEP_PATHS.loanDetails)),
-				error: (error: HttpErrorResponse) => this.errorMessages.set(this.toErrorMessages(error))
+				error: (error: unknown) => this.errorMessages.set(toErrorMessages(error))
 			});
 	}
 
@@ -174,10 +174,5 @@ export class LoanDetailsComponent implements OnInit {
 			address: value.isAddressKnown ? value.address : null,
 			state: value.isAddressKnown ? null : value.state
 		};
-	}
-
-	private toErrorMessages(error: HttpErrorResponse): string[] {
-		const errors = (error.error as { errors?: Record<string, string> } | null)?.errors;
-		return errors ? Object.values(errors) : ['Something went wrong while saving. Please try again.'];
 	}
 }
