@@ -7,7 +7,8 @@ import { MOCK_ROUTES } from './mock-routes';
 export const MOCK_LATENCY_MS = 400;
 
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
-	const apiBasePath = new URL(inject(APP_CONFIG).apiBaseUrl, 'http://localhost').pathname;
+	const config = inject(APP_CONFIG);
+	const apiBasePath = new URL(config.apiBaseUrl, 'http://localhost').pathname;
 	const path = new URL(req.url, 'http://localhost').pathname;
 	if (!path.startsWith(apiBasePath)) {
 		return next(req);
@@ -19,7 +20,7 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
 			continue;
 		}
 
-		const { status, body, headers: rawHeaders } = route.handle(req, match.slice(1));
+		const { status, body, headers: rawHeaders } = route.handle(req, match.slice(1), { config, now: new Date() });
 		const headers = new HttpHeaders(rawHeaders);
 		const response$ =
 			status < 400
