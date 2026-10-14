@@ -1,0 +1,20 @@
+:root {
+	--app-bg: #f5f6f8;
+	--app-surface: #ffffff;
+	--app-border: #dde1e6;
+	--app-text-muted: #6b7280;
+	--app-accent: #334155;
+}
+
+body {
+	background: var(--app-bg);
+	min-height: 100vh;
+}
+
+.form-label {
+	font-weight: 500;
+}
+
+.btn-check + .btn {
+	min-width: 7rem;
+}

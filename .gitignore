@@ -1,0 +1,27 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Exercise brief supplied by the hiring team (kept locally, not redistributed)
+home-loan-prequal-exercise-brief/
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+
+# AWS CDK
+cdk.out/
+
+# Local secrets
+.env
+*.local.json
