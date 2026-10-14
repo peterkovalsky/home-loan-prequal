@@ -36,9 +36,9 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 **1a. Refactor first, without changing behaviour** (existing tests must stay green):
 
 - `JourneyService`: current, next and previous step, plus completed state. Removes the hard-coded `'/loan-details'`.
-- Runtime config (`config.json` loaded with `provideAppInitializer`): `apiBaseUrl`, `useMockApi`, `maxApplicants`, `termsVersion`. Build once, run against the mock, local or Lambda API.
+- Runtime config (`config.json` fetched in `main.ts` before bootstrap): `apiBaseUrl`, `useMockApi`, `maxApplicants`, `termsVersion`. Build once, run against the mock, local or Lambda API.
 - Mock interceptor registered only when `useMockApi` is true.
-- HTTP error interceptor that normalises server errors (accepts both `string` and `string[]` per field).
+- A pure `toErrorMessages()` helper that normalises server errors (accepts both `string` and `string[]` per field). This replaced the planned interceptor; see `01-frontend.md`.
 - Shared UI: `StepCardComponent` (card, loading state, error summary) and `StepActionsComponent` (Back/Continue footer).
 - Shared helpers: `isInvalid`, reusable validators.
 - Lazy routes (`loadComponent`), `OnPush` everywhere, angular-eslint.
