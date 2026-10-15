@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # One build, four runnable targets:
 #   migrator         one-off schema migration (docker compose)
 #   api              the HTTP API on Kestrel (docker compose)

@@ -71,12 +71,19 @@ export async function agreeToTerms(page: Page): Promise<void> {
 }
 
 /**
- * Against the real API (E2E_CONFIGURATION=local-api) application 1 persists between tests, so delete
- * it first. Against the mock each test already gets a fresh browser context, and so fresh localStorage.
+ * Against a real API application 1 persists between tests, so delete it first: through the dev
+ * server's proxy for docker compose, or directly at E2E_API_URL for a deployed API. Against the mock
+ * each test already gets a fresh browser context, and so fresh localStorage.
  */
 export async function resetApplication(request: APIRequestContext): Promise<void> {
-	if (process.env['E2E_CONFIGURATION'] === 'local-api') {
-		const response = await request.delete('/api/applications/1');
-		expect(response.status()).toBe(204);
+	const configuration = process.env['E2E_CONFIGURATION'];
+	if (configuration !== 'local-api' && configuration !== 'aws') {
+		return;
 	}
+	const base = configuration === 'aws' ? process.env['E2E_API_URL'] : '/api';
+	if (!base) {
+		throw new Error('E2E_API_URL is required when E2E_CONFIGURATION=aws.');
+	}
+	const response = await request.delete(`${base}/applications/1`);
+	expect(response.status()).toBe(204);
 }

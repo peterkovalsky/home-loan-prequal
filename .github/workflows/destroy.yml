@@ -1,0 +1,38 @@
+name: Destroy AWS environment
+
+# Removes the API and the database (data included). The bootstrap and GitHub OIDC stacks stay,
+# so the next push to main redeploys from scratch.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to delete the API, the database and all its data'
+        required: true
+
+jobs:
+  destroy:
+    if: inputs.confirm == 'destroy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: deploy-aws
+      cancel-in-progress: false
+    environment: aws
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: infra/global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: github-destroy-${{ github.run_id }}
+      - working-directory: infra
+        run: npx -y aws-cdk@2.1145.0 destroy HomeLoanApi HomeLoanData --force

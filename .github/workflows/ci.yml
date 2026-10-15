@@ -120,3 +120,71 @@ jobs:
             frontend/playwright-report
             frontend/test-results
           retention-days: 7
+
+  # Every push to main that passes all checks deploys to AWS, then proves the live API works.
+  # Skipped until the one-time bootstrap has stored the role ARN (repo variable AWS_DEPLOY_ROLE_ARN).
+  deploy:
+    name: Deploy to AWS
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    needs: [frontend, backend, infra, e2e, e2e-api]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75 # the first RDS SQL Server create alone takes ~20-30 minutes
+    concurrency:
+      group: deploy-aws
+      cancel-in-progress: false # never interrupt a CloudFormation update; queue the next push
+    environment:
+      name: aws # the OIDC trust is pinned to this environment, which only main may deploy to
+      url: ${{ steps.outputs.outputs.api_url }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: infra/global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: github-${{ github.run_id }}
+      - name: cdk deploy (builds and pushes the images, migrates, updates the API)
+        working-directory: infra
+        run: npx -y aws-cdk@2.1145.0 deploy HomeLoanData HomeLoanApi --require-approval never --outputs-file cdk-outputs.json
+      - id: outputs
+        run: echo "api_url=$(jq -r '.HomeLoanApi.ApiEndpoint' infra/cdk-outputs.json)" >> "$GITHUB_OUTPUT"
+      - name: Smoke test the live API
+        run: backend/scripts/smoke-test.sh "${{ steps.outputs.outputs.api_url }}"
+      - name: Playwright journeys against the live API
+        run: |
+          scripts/write-aws-config.sh "${{ steps.outputs.outputs.api_url }}"
+          cd frontend
+          npm ci
+          npx playwright install --with-deps chromium
+          E2E_CONFIGURATION=aws E2E_API_URL="${{ steps.outputs.outputs.api_url }}/api" npm run e2e
+      - name: Summary
+        if: always() && steps.outputs.outputs.api_url != ''
+        run: |
+          {
+            echo "### Deployed"
+            echo ""
+            echo "API: ${{ steps.outputs.outputs.api_url }}/api"
+            echo ""
+            echo '```bash'
+            echo "scripts/write-aws-config.sh ${{ steps.outputs.outputs.api_url }}"
+            echo "cd frontend && npm run start:aws"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-aws
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

@@ -73,6 +73,19 @@
 									"output": "/"
 								}
 							]
+						},
+						"aws": {
+							"assets": [
+								{
+									"glob": "**/*",
+									"input": "public"
+								},
+								{
+									"glob": "config.json",
+									"input": "config/aws",
+									"output": "/"
+								}
+							]
 						}
 					},
 					"defaultConfiguration": "production"
@@ -89,6 +102,9 @@
 						"local-api": {
 							"buildTarget": "home-loan-prequal-exercise:build:development,local-api",
 							"proxyConfig": "proxy.conf.json"
+						},
+						"aws": {
+							"buildTarget": "home-loan-prequal-exercise:build:development,aws"
 						}
 					},
 					"defaultConfiguration": "development"
