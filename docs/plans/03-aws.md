@@ -1,6 +1,6 @@
 # Phase 3: Deploy the API to AWS Lambda
 
-Status: **draft, for review.** Parent plan: [00-overview.md](00-overview.md).
+Status: **in progress**: code done, bootstrap done (CDKToolkit, HomeLoanGitHubOidc, GitHub `aws` environment), first deploy running. Parent plan: [00-overview.md](00-overview.md).
 
 ## Goals
 
