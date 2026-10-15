@@ -22,7 +22,10 @@ internal sealed class GitHubOidcStack : Stack
             ClientIds = ["sts.amazonaws.com"]
         });
 
-        // With `environment:` on the job, GitHub's token subject is repo:<owner/repo>:environment:<name>.
+        // With `environment:` on the job the token subject is <prefix>:environment:<name>. This repo uses
+        // GitHub's immutable subject format (repo:<owner>@<owner id>/<repo>@<repo id>), so a renamed or
+        // re-created repository with the same name can't match. See
+        // `gh api repos/<owner>/<repo>/actions/oidc/customization/sub`.
         var role = new Role(this, "DeployRole", new RoleProps
         {
             RoleName = DeployRoleName,
@@ -33,7 +36,7 @@ internal sealed class GitHubOidcStack : Stack
                 ["StringEquals"] = new Dictionary<string, string>
                 {
                     ["token.actions.githubusercontent.com:aud"] = "sts.amazonaws.com",
-                    ["token.actions.githubusercontent.com:sub"] = $"repo:{settings.GitHubRepository}:environment:{settings.GitHubEnvironment}"
+                    ["token.actions.githubusercontent.com:sub"] = $"{settings.GitHubSubjectPrefix}:environment:{settings.GitHubEnvironment}"
                 }
             })
         });

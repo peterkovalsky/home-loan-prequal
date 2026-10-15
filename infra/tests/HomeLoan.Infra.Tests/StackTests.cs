@@ -21,7 +21,7 @@ public sealed class StackTests
             {
                 ["account"] = "085843960390",
                 ["region"] = "ap-southeast-2",
-                ["githubRepository"] = "peterkovalsky/home-loan-prequal",
+                ["githubSubjectPrefix"] = "repo:peterkovalsky@27682924/home-loan-prequal@1418539351",
                 ["githubEnvironment"] = "aws",
                 ["allowedOrigins"] = "http://localhost:4200",
                 ["budgetEmail"] = budgetEmail,
@@ -122,7 +122,7 @@ public sealed class StackTests
         var condition = role["AssumeRolePolicyDocument"]!["Statement"]![0]!["Condition"]!["StringEquals"]!;
         var statements = Resources(Templates.Value.Oidc, "AWS::IAM::Policy").Single()["Properties"]!["PolicyDocument"]!["Statement"]!.AsArray();
 
-        Assert.Equal("repo:peterkovalsky/home-loan-prequal:environment:aws", (string?)condition["token.actions.githubusercontent.com:sub"]);
+        Assert.Equal("repo:peterkovalsky@27682924/home-loan-prequal@1418539351:environment:aws", (string?)condition["token.actions.githubusercontent.com:sub"]);
         Assert.Equal("sts.amazonaws.com", (string?)condition["token.actions.githubusercontent.com:aud"]);
         var only = Assert.Single(statements)!;
         Assert.Equal("sts:AssumeRole", (string?)only["Action"]);

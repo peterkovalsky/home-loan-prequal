@@ -6,7 +6,7 @@ namespace HomeLoan.Infra;
 internal sealed record DeploymentSettings(
     string Account,
     string Region,
-    string GitHubRepository,
+    string GitHubSubjectPrefix,
     string GitHubEnvironment,
     IReadOnlyList<string> AllowedOrigins,
     string? BudgetEmail)
@@ -21,7 +21,7 @@ internal sealed record DeploymentSettings(
         return new DeploymentSettings(
             Required("account"),
             Required("region"),
-            Required("githubRepository"),
+            Required("githubSubjectPrefix"),
             Required("githubEnvironment"),
             Required("allowedOrigins").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             scope.Node.TryGetContext("budgetEmail") as string is { Length: > 0 } email ? email : null);
