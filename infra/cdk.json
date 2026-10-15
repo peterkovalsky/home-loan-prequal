@@ -5,7 +5,7 @@
     "region": "ap-southeast-2",
     "githubSubjectPrefix": "repo:peterkovalsky@27682924/home-loan-prequal@1418539351",
     "githubEnvironment": "aws",
-    "allowedOrigins": "http://localhost:4200",
+    "allowedOrigins": "http://localhost:4200,http://localhost:4300",
     "budgetEmail": "",
     "@aws-cdk/core:defaultCrossStackReferences": "strong",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
