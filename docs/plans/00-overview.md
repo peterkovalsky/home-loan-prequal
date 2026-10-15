@@ -1,6 +1,6 @@
 # Implementation plan: overview
 
-Status: **agreed**. Phases 0–2 done; Phase 3 (AWS) next.
+Status: **done.** Phases 0–4 complete: see the root README.md and NOTES.md.
 Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.md`, `03-aws.md`), written and reviewed before code.
 
 ## Principles
@@ -131,7 +131,7 @@ backend/
 - Budget alarm; `cdk destroy`; check the teardown is complete.
 - Known risk: `Microsoft.Data.SqlClient` on Lambda with `InvariantGlobalization`. Test early.
 
-## Phase 4: Write-up (~45 min)
+## Phase 4: Write-up (~45 min) (done)
 
 - `README.md`: how to run, test, deploy and tear down.
 - `NOTES.md`:

@@ -1,3 +1,5 @@
+> **Note:** this is the starter's original README, kept for reference. For how to run, test and deploy everything now (mock, Docker Compose or AWS API), see the [root README](../README.md); design notes are in [NOTES.md](../NOTES.md). Front-end conventions are in [CLAUDE.md](CLAUDE.md).
+
 # Home Loan Pre-Qualification: Front-End Exercise
 
 A small Angular app for the first steps of a home-loan pre-qualification journey. A customer answers a few questions about the loan they want. Later steps (about the applicants, their income and expenses, and so on) have not been built yet.

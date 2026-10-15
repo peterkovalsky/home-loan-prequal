@@ -31,7 +31,6 @@ Take-home exercise: an Angular front end, a .NET 8 API with SQL Server (Dapper),
 | Full local stack | `cp .env.example .env && docker compose up -d --build` (API on :5080) |
 | Front end E2E (real API) | `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` (stack must be up) |
 | Back end build and tests | `cd backend && dotnet build && dotnet test` (integration tests need Docker) |
-
 | Infra tests | `cd infra && dotnet test` |
 | Infra synth / diff / deploy (local) | `infra/cdk.sh synth` etc. Always use this wrapper: it pins `AWS_PROFILE=huskystudio` and refuses any other account. |
 | Lambda images, locally | `backend/scripts/lambda-local-check.sh` (Runtime Interface Emulator against the compose SQL Server) |
