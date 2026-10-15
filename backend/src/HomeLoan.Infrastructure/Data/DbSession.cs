@@ -10,8 +10,12 @@ namespace HomeLoan.Infrastructure.Data;
 /// The request's connection and, once something writes, its transaction (the unit of work).
 /// Reads join the transaction if one is open, so a handler sees its own writes. Disposing without
 /// <see cref="CommitAsync"/> rolls back.
+///
+/// Implements both IDisposable and IAsyncDisposable: Kestrel disposes request scopes
+/// asynchronously, but the AWS Lambda ASP.NET Core adapter disposes them synchronously, and a
+/// scoped service that is only IAsyncDisposable makes that throw on every request.
 /// </summary>
-public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger<DbSession> logger) : IUnitOfWork, IAsyncDisposable
+public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger<DbSession> logger) : IUnitOfWork, IDisposable, IAsyncDisposable
 {
     private SqlConnection? connection;
     private SqlTransaction? transaction;
@@ -52,11 +56,32 @@ public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger
         if (transaction is not null)
         {
             await EndAsync(transaction, CancellationToken.None);
+            transaction = null;
         }
         if (connection is not null)
         {
             await connection.DisposeAsync();
+            connection = null;
         }
+    }
+
+    public void Dispose()
+    {
+        if (transaction is not null)
+        {
+            if (transaction.Connection is null)
+            {
+                LogAlreadyEnded(logger);
+            }
+            else
+            {
+                transaction.Rollback();
+            }
+            transaction.Dispose();
+            transaction = null;
+        }
+        connection?.Dispose();
+        connection = null;
     }
 
     private async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
