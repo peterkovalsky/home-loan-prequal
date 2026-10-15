@@ -32,7 +32,11 @@ Take-home exercise: an Angular front end, a .NET 8 API with SQL Server (Dapper),
 | Front end E2E (real API) | `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` (stack must be up) |
 | Back end build and tests | `cd backend && dotnet build && dotnet test` (integration tests need Docker) |
 
-(Infra commands are added in Phase 3.)
+| Infra tests | `cd infra && dotnet test` |
+| Infra synth / diff / deploy (local) | `infra/cdk.sh synth` etc. Always use this wrapper: it pins `AWS_PROFILE=huskystudio` and refuses any other account. |
+| Lambda images, locally | `backend/scripts/lambda-local-check.sh` (Runtime Interface Emulator against the compose SQL Server) |
+
+**AWS safety:** never run `aws` or `cdk` without `--profile huskystudio` (or `infra/cdk.sh`). The default profile on this machine is a different account.
 
 ## Definition of done
 

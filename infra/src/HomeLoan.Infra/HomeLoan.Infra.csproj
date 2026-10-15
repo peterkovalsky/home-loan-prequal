@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- CDK apps run once at synth time; jsii marshals across a Node process. -->
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Amazon.CDK.Lib" />
+    <PackageReference Include="Constructs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HomeLoan.Infra.Tests" />
+  </ItemGroup>
+</Project>

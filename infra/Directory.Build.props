@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- CDK constructs are configured by side effect ("new Bucket(this, ...)"); CA1806 would flag every one. -->
+    <NoWarn>$(NoWarn);CA1806</NoWarn>
+  </PropertyGroup>
+</Project>

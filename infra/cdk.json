@@ -1,0 +1,14 @@
+{
+  "app": "dotnet run --project src/HomeLoan.Infra",
+  "context": {
+    "account": "085843960390",
+    "region": "ap-southeast-2",
+    "githubRepository": "peterkovalsky/home-loan-prequal",
+    "githubEnvironment": "aws",
+    "allowedOrigins": "http://localhost:4200",
+    "budgetEmail": "",
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:target-partitions": ["aws"]
+  }
+}
