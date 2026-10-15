@@ -1,27 +1,50 @@
+using System.Text.Json;
+using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
+using Amazon.Lambda.Serialization.SystemTextJson;
 using HomeLoan.Migrations;
+using HomeLoan.Secrets;
 using Microsoft.Extensions.Configuration;
 
-// Settings: ConnectionStrings:Admin (required) and Database:AppLoginPassword (optional),
-// from appsettings.json, environment variables (ConnectionStrings__Admin) or --key=value.
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddEnvironmentVariables()
-    .AddCommandLine(args)
-    .Build();
+// Settings: ConnectionStrings:Admin and Database:AppLoginPassword, from appsettings.json, environment
+// variables (ConnectionStrings__Admin), --key=value, or on AWS from Secrets Manager
+// (Database:AdminSecretArn, Database:AppSecretArn, Database:Host).
+var configuration = new ConfigurationManager();
+configuration.AddJsonFile("appsettings.json", optional: true);
+configuration.AddEnvironmentVariables();
+configuration.AddCommandLine(args);
+await DatabaseSecrets.ApplyAsync(configuration);
 
-var adminConnectionString = configuration.GetConnectionString("Admin");
-if (string.IsNullOrWhiteSpace(adminConnectionString))
+if (Environment.GetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API") is not null)
 {
-    await Console.Error.WriteLineAsync("ConnectionStrings:Admin is required.");
+    // On Lambda the CDK deploy trigger invokes this once per deploy. Throwing makes the invocation
+    // fail, which fails (and rolls back) the deployment.
+    var handler = (JsonElement _, ILambdaContext context) =>
+    {
+        var result = MigrationRun.FromConfiguration(configuration, Console.Out);
+        if (!result.Successful)
+        {
+            throw new InvalidOperationException("Database migration failed.", result.Error);
+        }
+        return Task.FromResult(new MigrationSummary(result.AppliedScripts.Count, result.AppliedScripts));
+    };
+    await LambdaBootstrapBuilder.Create(handler, new DefaultLambdaJsonSerializer()).Build().RunAsync();
+    return 0;
+}
+
+try
+{
+    var outcome = MigrationRun.FromConfiguration(configuration, Console.Out);
+    if (!outcome.Successful)
+    {
+        await Console.Error.WriteLineAsync($"Migration failed: {outcome.Error?.Message}");
+        return 1;
+    }
+    Console.WriteLine($"Database is up to date ({outcome.AppliedScripts.Count} new script(s) applied).");
+    return 0;
+}
+catch (InvalidOperationException ex)
+{
+    await Console.Error.WriteLineAsync(ex.Message);
     return 2;
 }
-
-var result = DatabaseMigrator.Migrate(adminConnectionString, configuration["Database:AppLoginPassword"], Console.Out);
-if (!result.Successful)
-{
-    await Console.Error.WriteLineAsync($"Migration failed: {result.Error?.Message}");
-    return 1;
-}
-
-Console.WriteLine($"Database is up to date ({result.AppliedScripts.Count} new script(s) applied).");
-return 0;
