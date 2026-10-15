@@ -7,7 +7,7 @@
     "githubEnvironment": "aws",
     "allowedOrigins": "http://localhost:4200,http://localhost:4300",
     "budgetEmail": "",
-    "apiMemoryMb": "1024",
+    "apiMemoryMb": "1769",
     "apiProvisionedConcurrency": "0",
     "@aws-cdk/core:defaultCrossStackReferences": "strong",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
