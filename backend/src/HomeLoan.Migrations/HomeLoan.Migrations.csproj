@@ -14,4 +14,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Scripts\**\*.sql" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HomeLoan.Secrets\HomeLoan.Secrets.csproj" />
+  </ItemGroup>
 </Project>

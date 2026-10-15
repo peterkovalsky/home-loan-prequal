@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\HomeLoan.Application\HomeLoan.Application.csproj" />
     <ProjectReference Include="..\HomeLoan.Infrastructure\HomeLoan.Infrastructure.csproj" />
+    <ProjectReference Include="..\HomeLoan.Secrets\HomeLoan.Secrets.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" />

@@ -7,6 +7,7 @@ COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/HomeLoan.Domain/HomeLoan.Domain.csproj src/HomeLoan.Domain/
 COPY src/HomeLoan.Application/HomeLoan.Application.csproj src/HomeLoan.Application/
 COPY src/HomeLoan.Infrastructure/HomeLoan.Infrastructure.csproj src/HomeLoan.Infrastructure/
+COPY src/HomeLoan.Secrets/HomeLoan.Secrets.csproj src/HomeLoan.Secrets/
 COPY src/HomeLoan.Migrations/HomeLoan.Migrations.csproj src/HomeLoan.Migrations/
 COPY src/HomeLoan.Api/HomeLoan.Api.csproj src/HomeLoan.Api/
 RUN dotnet restore src/HomeLoan.Migrations && dotnet restore src/HomeLoan.Api
