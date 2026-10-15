@@ -3,8 +3,10 @@ using System.Diagnostics;
 namespace HomeLoan.Api;
 
 /// <summary>
-/// Measures where start-up time goes, so cold-start work is driven by data. Logged once per process
-/// when the host has started (on Lambda, that's the end of the INIT phase).
+/// Measures where start-up time goes, so cold-start work is driven by data. Logged once per process,
+/// just before the host runs. Not on ApplicationStarted: under the Lambda hosting adapter, starting
+/// the server runs the runtime loop and never returns, so that event never fires. On Lambda, the
+/// INIT Duration minus runtimeToMain and totalSinceMain is the time spent starting the host itself.
 /// </summary>
 internal sealed partial class StartupTimings
 {
@@ -23,22 +25,21 @@ internal sealed partial class StartupTimings
 
     public void AppBuilt() => buildMs = clock.ElapsedMilliseconds;
 
-    /// <summary>Logs the phases (each as a duration) once the host has started.</summary>
-    public void LogWhenStarted(WebApplication app) =>
-        app.Lifetime.ApplicationStarted.Register(() => LogStartup(
-            app.Logger,
-            runtimeToMainMs,
-            builderMs,
-            secretsMs - builderMs,
-            servicesMs - secretsMs,
-            buildMs - servicesMs,
-            clock.ElapsedMilliseconds - buildMs,
-            clock.ElapsedMilliseconds));
+    /// <summary>Logs the phases, each as a duration. Call it last, just before the host runs.</summary>
+    public void Log(WebApplication app) => LogStartup(
+        app.Logger,
+        runtimeToMainMs,
+        builderMs,
+        secretsMs - builderMs,
+        servicesMs - secretsMs,
+        buildMs - servicesMs,
+        clock.ElapsedMilliseconds - buildMs,
+        clock.ElapsedMilliseconds);
 
     [LoggerMessage(Level = LogLevel.Information, Message =
         "Startup timings ms: runtimeToMain={RuntimeToMainMs} createBuilder={CreateBuilderMs} secrets={SecretsMs} " +
-        "configureServices={ConfigureServicesMs} build={BuildMs} startHost={StartHostMs} totalSinceMain={TotalMs}")]
+        "configureServices={ConfigureServicesMs} build={BuildMs} pipeline={PipelineMs} totalSinceMain={TotalMs}")]
     private static partial void LogStartup(
         ILogger logger, long runtimeToMainMs, long createBuilderMs, long secretsMs, long configureServicesMs,
-        long buildMs, long startHostMs, long totalMs);
+        long buildMs, long pipelineMs, long totalMs);
 }

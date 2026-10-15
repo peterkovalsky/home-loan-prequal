@@ -13,7 +13,7 @@ timings.ServicesConfigured();
 var app = builder.Build();
 timings.AppBuilt();
 app.ConfigurePipeline();
-timings.LogWhenStarted(app);
+timings.Log(app);
 await app.RunAsync();
 
 /// <summary>Entry point; public so WebApplicationFactory can host it in tests.</summary>
