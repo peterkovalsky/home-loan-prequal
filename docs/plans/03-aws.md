@@ -1,6 +1,6 @@
 # Phase 3: Deploy the API to AWS Lambda
 
-Status: **in progress**: code done, bootstrap done (CDKToolkit, HomeLoanGitHubOidc, GitHub `aws` environment), first deploy running. Parent plan: [00-overview.md](00-overview.md).
+Status: **done.** Live at `https://wmq0xra270.execute-api.ap-southeast-2.amazonaws.com/api`, deployed automatically from `main`. See "As built" at the end. Parent plan: [00-overview.md](00-overview.md).
 
 ## Goals
 
@@ -184,3 +184,31 @@ I couldn't confirm this account's free-tier status from the CLI. The budget alar
 1. **Budget alarm email:** which address should AWS Budgets notify? The threshold would be US$20/month.
 2. **After bootstrap:** delete the `huskystudio-cli` access key, or downgrade it to `ReadOnlyAccess` so I can keep reading logs and status?
 3. **Cost:** are you OK with roughly US$11–45/month while it's up? The plan is to destroy it after the walkthrough.
+
+## As built
+
+**Live:** `https://wmq0xra270.execute-api.ap-southeast-2.amazonaws.com/api`. All six CI jobs pass, including Deploy to AWS: the smoke test and **6/6 Playwright journeys against the live API**.
+
+| Planned | Built | Why |
+|---|---|---|
+| OIDC trust `repo:<owner>/<repo>:environment:aws` | `repo:peterkovalsky@27682924/home-loan-prequal@1418539351:environment:aws` (`githubSubjectPrefix` in `cdk.json`) | ai-log #11. This repo's tokens use GitHub's immutable subject format. It is safer: a renamed or re-created repo can't match. |
+| CORS origin `localhost:4200` | `localhost:4200` and `localhost:4300` | ai-log #12. Playwright serves on 4300, and only the live E2E run exercises cross-origin calls. |
+| Copy tzdata into the Lambda image | Not needed; the base image has it | ai-log #9. |
+| `DbSession` as is | Also `IDisposable` | ai-log #8. The Lambda adapter disposes request scopes synchronously; found by the local emulator check. |
+| Engine version `16.00` | `16.00.4265.3.v1`, pinned, with auto minor upgrade off | CloudFormation needs an exact version, and auto upgrades would make the template drift from what's running. |
+| Look up AZs at synth time | Committed in `cdk.context.json` | Deterministic synth with no credentials (CI) and no risk of using the wrong profile (ai-log #10). |
+| Budget alarm | Not created (`budgetEmail` empty) | No address given. Set `budgetEmail` in `cdk.json` and push to add it. |
+| Planned as 3 infra commits | Built in one commit, plus 2 fixes from the first deploy | The stacks are small and were written together with their tests. |
+
+**Cold starts (measured from CloudWatch `REPORT` lines and the smoke test):**
+
+| Case | Init | First invoke | Total |
+|---|---|---|---|
+| First start after a deploy (image not yet cached) | 6.2 s | 0.7 s | about 6.9 s |
+| A later cold start | 1.8 s | 0.8 s | about 2.6 s |
+| Warm | — | — | tens of ms |
+
+Memory used is about 140 MB of 1024 MB. **Options, not done:**
+- One provisioned-concurrency instance (no cold starts, about US$10/month).
+- Less start-up work: Swagger is already Development-only; also look at FluentValidation scanning and the secret fetch.
+- A zip package with SnapStart. SnapStart isn't available for container images, so this trades away the container requirement.

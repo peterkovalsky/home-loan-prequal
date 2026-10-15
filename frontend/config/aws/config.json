@@ -1,5 +1,5 @@
 {
-	"apiBaseUrl": "https://REPLACE-WITH-DEPLOYED-API.execute-api.ap-southeast-2.amazonaws.com/api",
+	"apiBaseUrl": "https://wmq0xra270.execute-api.ap-southeast-2.amazonaws.com/api",
 	"useMockApi": false,
 	"maxApplicants": 4,
 	"termsVersion": "2026-10"
