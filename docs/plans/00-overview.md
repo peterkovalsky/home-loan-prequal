@@ -21,6 +21,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 | Database | SQL Server 2022 in Docker (Rosetta on Apple Silicon); RDS SQL Server Express in AWS. |
 | Data access | Dapper, with DbUp for versioned SQL migrations. |
 | IaC | AWS CDK in C# (one language across the back end). |
+| AWS deploy | Lambda **container images** (ECR, arm64) via CDK; GitHub Actions deploys on every push to `main` (OIDC, no stored keys). Account `085843960390`, `ap-southeast-2`. See `03-aws.md`. |
 | Concurrency | A `rowversion` per resource, exposed as an ETag; `If-Match` on PUT; stale writes get `412`, a missing `If-Match` gets `428`. |
 
 ## Phase 0: Repo and guardrails (~30 min)
