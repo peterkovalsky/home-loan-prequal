@@ -32,8 +32,11 @@ public sealed class ConcurrencyTests(ApiFixture fixture) : ApiTest(fixture)
         }
     }
 
+    // The loser gets 412 if both requests read "not saved yet" (its insert loses the compare-and-swap),
+    // or 428 if the winner committed before the loser read (it now updates without an If-Match).
+    // Both are correct; what must hold is one winner and one row.
     [Fact]
-    public async Task Two_first_saves_produce_one_201_and_one_412()
+    public async Task Two_first_saves_produce_one_201_and_one_rejection()
     {
         for (var round = 0; round < Rounds; round++)
         {
@@ -44,9 +47,11 @@ public sealed class ConcurrencyTests(ApiFixture fixture) : ApiTest(fixture)
                 Client.PutAsync(TestApi.LoanDetails, TestApi.LoanDetailsBody(1)),
                 second.PutAsync(TestApi.LoanDetails, TestApi.LoanDetailsBody(2)));
 
-            Assert.Equal(
-                [HttpStatusCode.Created, HttpStatusCode.PreconditionFailed],
-                results.Select(r => r.StatusCode).Order());
+            var codes = results.Select(r => r.StatusCode).Order().ToArray();
+            Assert.True(
+                codes[0] == HttpStatusCode.Created
+                    && codes[1] is HttpStatusCode.PreconditionFailed or HttpStatusCode.PreconditionRequired,
+                $"Round {round}: {string.Join(", ", codes.Select(c => (int)c))}");
             Assert.Equal(1, await ScalarAsync<int>("SELECT COUNT(*) FROM app.LoanDetails"));
         }
     }
