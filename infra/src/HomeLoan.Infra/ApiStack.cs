@@ -39,7 +39,7 @@ internal sealed class ApiStack : Stack
         {
             environment[$"Cors__AllowedOrigins__{i}"] = settings.AllowedOrigins[i];
         }
-        var api = Function(this, "ApiFunction", "lambda", data, memoryMb: 1024, Duration.Seconds(15), environment);
+        var api = Function(this, "ApiFunction", "lambda", data, settings.ApiMemoryMb, Duration.Seconds(15), environment);
         // Caps database connections and the bill; the account allows 400.
         ((CfnFunction)api.Node.DefaultChild!).ReservedConcurrentExecutions = 10;
         data.AppLoginSecret.GrantRead(api); // The API can read only its own login, never the admin secret.
@@ -55,6 +55,16 @@ internal sealed class ApiStack : Stack
         });
         migrate.ExecuteBefore(api);
 
+        // API Gateway calls a published version through the "live" alias. Provisioned concurrency
+        // (cdk.json apiProvisionedConcurrency) keeps that many instances initialised, so the first
+        // request after a deploy, or after idle, has no cold start. 0 means on demand.
+        var live = new Alias(this, "ApiLive", new AliasProps
+        {
+            AliasName = "live",
+            Version = api.CurrentVersion,
+            ProvisionedConcurrentExecutions = settings.ApiProvisionedConcurrency > 0 ? settings.ApiProvisionedConcurrency : null
+        });
+
         var accessLogs = new LogGroup(this, "AccessLogs", new LogGroupProps
         {
             Retention = RetentionDays.ONE_WEEK,
@@ -64,7 +74,7 @@ internal sealed class ApiStack : Stack
         {
             ApiName = "homeloan",
             Description = "Home loan pre-qualification API",
-            DefaultIntegration = new HttpLambdaIntegration("ApiIntegration", api),
+            DefaultIntegration = new HttpLambdaIntegration("ApiIntegration", live),
             // CORS is the app's job (same behaviour as locally); API Gateway CORS would conflict.
         });
         var stage = (CfnStage)httpApi.DefaultStage!.Node.DefaultChild!;
@@ -84,7 +94,7 @@ internal sealed class ApiStack : Stack
         new Alarm(this, "ApiErrors", new AlarmProps
         {
             AlarmDescription = "The API Lambda threw or timed out.",
-            Metric = api.MetricErrors(new MetricOptions { Period = Duration.Minutes(5), Statistic = "Sum" }),
+            Metric = live.MetricErrors(new MetricOptions { Period = Duration.Minutes(5), Statistic = "Sum" }),
             Threshold = 1,
             EvaluationPeriods = 1,
             ComparisonOperator = ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,

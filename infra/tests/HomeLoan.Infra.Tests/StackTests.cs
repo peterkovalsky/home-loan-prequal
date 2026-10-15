@@ -13,7 +13,7 @@ public sealed class StackTests
 {
     private static readonly string[] AvailabilityZones = ["ap-southeast-2a", "ap-southeast-2b", "ap-southeast-2c"];
 
-    private static (Template Oidc, Template Data, Template Api) Synth(string budgetEmail = "")
+    private static (Template Oidc, Template Data, Template Api) Synth(string budgetEmail = "", int provisionedConcurrency = 0)
     {
         var app = new App(new AppProps
         {
@@ -25,6 +25,8 @@ public sealed class StackTests
                 ["githubEnvironment"] = "aws",
                 ["allowedOrigins"] = "http://localhost:4200",
                 ["budgetEmail"] = budgetEmail,
+                ["apiMemoryMb"] = "1024",
+                ["apiProvisionedConcurrency"] = provisionedConcurrency.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["@aws-cdk/core:defaultCrossStackReferences"] = "strong",
                 ["availability-zones:account=085843960390:region=ap-southeast-2"] = AvailabilityZones
             }
@@ -155,5 +157,18 @@ public sealed class StackTests
     {
         Templates.Value.Api.ResourceCountIs("AWS::Budgets::Budget", 0);
         Synth(budgetEmail: "alerts@example.com").Api.ResourceCountIs("AWS::Budgets::Budget", 1);
+    }
+
+    [Fact]
+    public void Api_gateway_calls_the_live_alias_and_provisioned_concurrency_is_opt_in()
+    {
+        var onDemand = Resources(Templates.Value.Api, "AWS::Lambda::Alias").Single()["Properties"]!;
+        var integration = Resources(Templates.Value.Api, "AWS::ApiGatewayV2::Integration").Single()["Properties"]!;
+        var provisioned = Resources(Synth(provisionedConcurrency: 1).Api, "AWS::Lambda::Alias").Single()["Properties"]!;
+
+        Assert.Equal("live", (string?)onDemand["Name"]);
+        Assert.Null(onDemand["ProvisionedConcurrencyConfig"]);
+        Assert.Contains("ApiLive", integration["IntegrationUri"]!.ToJsonString(), StringComparison.Ordinal);
+        Assert.Equal(1, (int)provisioned["ProvisionedConcurrencyConfig"]!["ProvisionedConcurrentExecutions"]!);
     }
 }

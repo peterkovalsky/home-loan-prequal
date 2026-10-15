@@ -9,7 +9,9 @@ internal sealed record DeploymentSettings(
     string GitHubSubjectPrefix,
     string GitHubEnvironment,
     IReadOnlyList<string> AllowedOrigins,
-    string? BudgetEmail)
+    string? BudgetEmail,
+    int ApiMemoryMb,
+    int ApiProvisionedConcurrency)
 {
     public static DeploymentSettings From(Construct scope)
     {
@@ -24,7 +26,15 @@ internal sealed record DeploymentSettings(
             Required("githubSubjectPrefix"),
             Required("githubEnvironment"),
             Required("allowedOrigins").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-            scope.Node.TryGetContext("budgetEmail") as string is { Length: > 0 } email ? email : null);
+            scope.Node.TryGetContext("budgetEmail") as string is { Length: > 0 } email ? email : null,
+            Number("apiMemoryMb", 128, 10_240),
+            Number("apiProvisionedConcurrency", 0, 10));
+
+        // Context values arrive as strings from cdk.json/-c and as numbers from code; accept both.
+        int Number(string key, int min, int max) =>
+            int.TryParse(scope.Node.TryGetContext(key)?.ToString(), out var value) && value >= min && value <= max
+                ? value
+                : throw new InvalidOperationException($"cdk.json context '{key}' must be a number between {min} and {max}.");
     }
 }
 

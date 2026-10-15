@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using HomeLoan.Application.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace HomeLoan.Infrastructure.Data;
 /// </summary>
 public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger<DbSession> logger) : IUnitOfWork, IDisposable, IAsyncDisposable
 {
+    private static int firstConnectionLogged;
     private SqlConnection? connection;
     private SqlTransaction? transaction;
 
@@ -88,8 +90,14 @@ public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger
     {
         if (connection is null)
         {
+            var started = Stopwatch.GetTimestamp();
             connection = new SqlConnection(options.Value.HomeLoan);
             await connection.OpenAsync(cancellationToken);
+            // The first connection per process pays for TLS and login; later ones come from the pool.
+            if (Interlocked.Exchange(ref firstConnectionLogged, 1) == 0)
+            {
+                LogFirstConnection(logger, (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            }
         }
         return connection;
     }
@@ -108,6 +116,9 @@ public sealed partial class DbSession(IOptions<DatabaseOptions> options, ILogger
         }
         await current.DisposeAsync();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "First SQL connection opened in {ElapsedMs} ms")]
+    private static partial void LogFirstConnection(ILogger logger, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Transaction was already ended by the server before rollback.")]
     private static partial void LogAlreadyEnded(ILogger logger);
