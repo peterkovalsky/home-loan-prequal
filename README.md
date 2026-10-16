@@ -1,6 +1,6 @@
 # Home Loan Pre-Qualification
 
-A customer pre-qualifies for a home loan in two steps: **Loan details**, then **About you**. The stack:
+A customer pre-qualifies for a home loan in two steps, **Loan details** then **About you**, and submits. Progress is saved as they type, so they can come back later. The stack:
 
 - **Front end:** Angular 19.
 - **API:** .NET 8 (ASP.NET Core minimal APIs) using **Dapper** on **SQL Server**.
@@ -75,9 +75,9 @@ cd frontend && npm run start:aws     # http://localhost:4200 → https://…exec
 | Suite | Command | What it proves |
 |---|---|---|
 | Front end lint and format | `cd frontend && npm run format:check && npm run lint` | Prettier and angular-eslint, with `OnPush` enforced |
-| Front end unit (156) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API, address suggestions, session, autosave (debounce, ordering, retry, the Continue race) |
-| Journeys on the mock (10) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard, address suggestions (Addressfinder stubbed), **closing the browser and coming back**, "Not you?" |
-| Journeys on the real stack (10) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
+| Front end unit (160) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API, address suggestions, session, autosave (debounce, ordering, retry, the Continue race) |
+| Journeys on the mock (13) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard, address suggestions (Addressfinder stubbed), **closing the browser and coming back**, "Not you?", **submitting and starting again** |
+| Journeys on the real stack (13) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
 | Back end unit (103) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution, resume tokens, drafts |
 | Back end integration (59) | `cd backend && dotnet test tests/HomeLoan.IntegrationTests` | Real SQL Server (Testcontainers): the HTTP contract, **concurrent-save races**, every schema constraint, least-privilege login, **the token on every route**, expiry, drafts, the purge |
 | Infra (11) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust, the daily purge |

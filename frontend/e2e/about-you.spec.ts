@@ -14,12 +14,32 @@ test.describe('About you', () => {
 		await agreeToTerms(page);
 		await page.getByRole('button', { name: 'Continue' }).click();
 
-		await expect(page.getByText('Your details have been saved.')).toBeVisible();
+		// Saving the last step submits the application.
+		await expect(page).toHaveURL(/\/complete$/);
+		await expect(page.getByRole('heading', { name: 'Application submitted' })).toBeVisible();
+		await expect(page.getByText('Thanks, Alex.')).toBeVisible();
+		await expect(page.getByText(/Your reference is HL-\d+/)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'About you (completed)' })).toBeVisible();
 
 		await page.reload();
+		await expect(page).toHaveURL(/\/complete$/);
+		await page.getByRole('link', { name: 'About you (completed)' }).click();
 		await expect(applicant(page, 2).getByLabel('Mobile')).toHaveValue('0498765432');
 		await expect(page.getByRole('checkbox', { name: /I agree to the pre-qualification/ })).toBeChecked();
+	});
+
+	test('after submitting, "Start a new application" gives a blank Loan details', async ({ page }) => {
+		await completeLoanDetails(page, 'Just me');
+		await fillApplicant(page, 1, ALEX);
+		await agreeToTerms(page);
+		await page.getByRole('button', { name: 'Continue' }).click();
+		await expect(page.getByRole('heading', { name: 'Application submitted' })).toBeVisible();
+
+		await page.getByRole('button', { name: 'Start a new application', exact: true }).click();
+
+		await expect(page).toHaveURL(/\/loan-details$/);
+		await expect(page.getByLabel('Borrowing how much?')).toHaveValue('');
+		await expect(page.getByRole('link', { name: 'Loan details (completed)' })).toHaveCount(0);
 	});
 
 	test('Back keeps what the customer has typed', async ({ page }) => {

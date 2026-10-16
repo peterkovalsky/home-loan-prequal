@@ -10,6 +10,9 @@ export const STEP_PATHS = {
 	aboutYou: '/about-you'
 } as const;
 
+/** Where Continue on the last step leads: the application is submitted. Not a step itself. */
+export const COMPLETE_PATH = '/complete';
+
 export const JOURNEY_STEPS: JourneyStep[] = [
 	{ path: STEP_PATHS.loanDetails, title: 'Loan details' },
 	{ path: STEP_PATHS.aboutYou, title: 'About you' }

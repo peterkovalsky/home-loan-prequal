@@ -4,10 +4,6 @@
 	[loading]="loading()"
 	[errorMessages]="errorMessages()"
 >
-	@if (saved()) {
-		<div class="alert alert-success" role="status">Your details have been saved.</div>
-	}
-
 	<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
 		@for (applicant of applicants.controls; track applicant; let i = $index) {
 			<section

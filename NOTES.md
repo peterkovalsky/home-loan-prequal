@@ -93,6 +93,13 @@ flowchart LR
 - **Found while planning it:** the mock interceptor matched by path only, and Addressfinder's path also starts with `/api/`. It now matches the origin too, with a test that fails without the fix.
 - **Next:** store the G-NAF id, state and postcode (a migration), and verify them server side with the secret. Lock the key to the real domains once the front end is deployed.
 
+**Added after the brief: submitting** ([plan](docs/plans/07-submit.md)). Continue on About you, the last step, is the final validated save. The customer then sees a completion screen at `/complete`, outside the step list:
+- an animated tick, which stays still under `prefers-reduced-motion`;
+- their reference (`HL-` and the application id);
+- **Start a new application**.
+
+A returning customer with a submitted application opens on that screen, and the route refuses anyone who hasn't submitted. There's no new server state, as agreed: the submitted application is the one the purge keeps. Locking edits after submitting would need a status column and read-only routes; see Improvements.
+
 **Not built:** a metadata-driven form engine. The config (`maxApplicants`, `termsVersion`, the journey token) is the first step towards per-lender configuration; see Improvements.
 
 ---
@@ -482,6 +489,7 @@ flowchart LR
 - **Per-lender configuration.** Grow `config.json` and the `JOURNEY` token into lender metadata: steps, fields, rules and applicant limits served by the API. That's the natural path towards a metadata-driven loan app.
 - **Show server field errors next to the field.** Keys like `applicants[1].mobile` already arrive; today they're listed in the summary.
 - **Serve the applicant cap and terms version from the API** (`GET /api/config`), so the front end and server can't drift. Today they're set in both places.
+- **Lock a submitted application:** a status column, a `POST /submit`, and read-only routes, so a submitted pre-qualification can't change under the lender.
 - **Applicant identity.** Ids are stable per position, not per person, so removing applicant 2 of 4 shifts applicant 3 into position 2. Fixing it needs the client to send ids.
 
 **Platform:**
@@ -523,14 +531,14 @@ flowchart LR
 - **Repeatable changes:** a repo skill (`.claude/skills/add-journey-step`) makes "add a step" or "add a field" changes predictable.
 - **Plans updated, not replaced:** each plan has an "As built" section listing every difference from it, with the reason.
 
-**Where the AI was wrong, and how it was caught.** There are 17 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
+**Where the AI was wrong, and how it was caught.** There are 18 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
 
 | Type | Examples | Caught by |
 |---|---|---|
 | **Design gaps** | Undershooting the brief with "keep it simple" (#1); one concurrency version shared by every resource, which would give false 412s (#4); test runs resetting the application people demo with (#16); an autosave able to land after the real save (#17) | Plan review against the brief; tracing the Back/Continue journey; a manual test; a unit test written for the race |
 | **Tests that couldn't fail, or only one way to pass** | An assertion-free spec (#2); a test that passed with the feature deleted (#3); a race test that accepted only one of two correct interleavings (#14) | Self-review and a mutation check |
 | **Environment-specific bugs** | Malformed JSON giving 500 in Development only (#5); error-level log noise from client mistakes (#6); a race only seen on CI (#7); the Lambda adapter disposing request scopes synchronously (#8) | curl smoke tests, reading test output, the CI logs, the Lambda emulator |
-| **Wrong assumptions about the platform** | Time-zone data missing from the Lambda image (#9); GitHub's OIDC subject format (#11); CORS for the test origin (#12); a start-up hook that never fires on Lambda, and a script that couldn't force cold starts (#13) | The image build, the first deploy, a curl preflight, reading raw CloudWatch streams |
+| **Wrong assumptions about the platform** | Time-zone data missing from the Lambda image (#9); GitHub's OIDC subject format (#11); CORS for the test origin (#12); a start-up hook that never fires on Lambda, and a script that couldn't force cold starts (#13); an inline component host that swallowed clicks on its own links (#18) | The image build, the first deploy, a curl preflight, reading raw CloudWatch streams |
 | **Optimistic estimates** | Expected 0.2–0.3 s from overlapping the secret fetch; measured ~70 ms (#15) | Measuring the deployed change before writing it up |
 | **Safety** | One `cdk synth` ran under the machine's *default* AWS profile, a different account. AWS denied it and nothing changed (#10). | Reading the output. Fixed with a wrapper that refuses any other account, and a synth that needs no credentials. |
 

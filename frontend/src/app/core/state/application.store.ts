@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, map, of, switchMap, tap } from 'rxjs';
+import { Observable, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { ApplicantCountRange, applicantCountRange } from '../../shared/validation/applicant-count';
 import { ApplicantsService } from '../api/applicants.service';
 import { DraftStep, Drafts, DraftsService } from '../api/drafts.service';
@@ -71,6 +71,11 @@ export class ApplicationStore {
 		}
 		return completed;
 	});
+
+	/** Loads what's saved and reports which steps are complete (both: the application is submitted). */
+	ensureProgress(): Observable<ReadonlySet<string>> {
+		return forkJoin([this.ensureLoanDetails(), this.ensureApplicants()]).pipe(map(() => this.completedSteps()));
+	}
 
 	ensureLoanDetails(): Observable<LoanDetails | null> {
 		return this.loanDetailsResource.ensure();

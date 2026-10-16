@@ -1,5 +1,5 @@
 import { Browser, BrowserContext, Page, expect, test } from '@playwright/test';
-import { applicant, choose, completeLoanDetails, setUpJourney } from './journey';
+import { ALEX, agreeToTerms, applicant, choose, completeLoanDetails, fillApplicant, setUpJourney } from './journey';
 
 /**
  * Closing the browser and coming back: a new browser context that carries over only what a real
@@ -48,6 +48,26 @@ test.describe('Coming back later', () => {
 		await expect(applicant(again, 1).getByLabel('First name')).toHaveValue('Alex');
 		await expect(applicant(again, 2).getByLabel('Last name')).toHaveValue('Taylor');
 		await context.close();
+	});
+
+	test('a submitted application opens on the completion screen', async ({ browser, page }) => {
+		await completeLoanDetails(page, 'Just me');
+		await fillApplicant(page, 1, ALEX);
+		await agreeToTerms(page);
+		await page.getByRole('button', { name: 'Continue' }).click();
+		await expect(page).toHaveURL(/\/complete$/);
+
+		const { context, page: again } = await reopen(browser, page.context());
+		await again.goto('/');
+
+		await expect(again).toHaveURL(/\/complete$/);
+		await expect(again.getByRole('heading', { name: 'Application submitted' })).toBeVisible();
+		await context.close();
+	});
+
+	test('the completion screen is only for a submitted application', async ({ page }) => {
+		await page.goto('/complete');
+		await expect(page).toHaveURL(/\/loan-details$/);
 	});
 
 	test('"Not you? Start a new application" starts from a blank form', async ({ page }) => {

@@ -263,7 +263,7 @@ describe('AboutYouComponent', () => {
 		expect(applicantsService.save.calls.mostRecent().args[1].applicants.map((a) => a.firstName)).toEqual(['Alex']);
 	});
 
-	it('sends trimmed, normalised details and the terms version, then shows it was saved', () => {
+	it('sends trimmed, normalised details and the terms version, then shows the application as submitted', () => {
 		create();
 		applicantsService.save.and.returnValue(of(savedApplicants()));
 		component.applicants.at(0).setValue(validApplicant);
@@ -284,7 +284,9 @@ describe('AboutYouComponent', () => {
 			],
 			consent: { accepted: true, termsVersion: 'test-terms' }
 		});
-		expect(component.saved()).toBeTrue();
+		expect(navigate)
+			.withContext('the last step: saving it submits the application')
+			.toHaveBeenCalledWith('/complete');
 	});
 
 	it('shows server validation errors and explains a concurrent edit', () => {

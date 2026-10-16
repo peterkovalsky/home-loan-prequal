@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import {
 	AbstractControl,
 	FormArray,
@@ -13,7 +14,7 @@ import { finalize, forkJoin, switchMap } from 'rxjs';
 import { toErrorMessages } from '../../core/api/api-errors';
 import { APP_CONFIG } from '../../core/config/app-config';
 import { DraftAutosave } from '../../core/drafts/draft-autosave';
-import { STEP_PATHS } from '../../core/journey/journey-steps';
+import { COMPLETE_PATH, STEP_PATHS } from '../../core/journey/journey-steps';
 import { JourneyService } from '../../core/journey/journey.service';
 import {
 	Applicant,
@@ -68,6 +69,7 @@ export class AboutYouComponent implements OnInit {
 	private readonly fb = inject(NonNullableFormBuilder);
 	private readonly store = inject(ApplicationStore);
 	private readonly journey = inject(JourneyService);
+	private readonly router = inject(Router);
 	private readonly config = inject(APP_CONFIG);
 	private readonly clock = inject(CLOCK);
 	private readonly destroyRef = inject(DestroyRef);
@@ -79,7 +81,6 @@ export class AboutYouComponent implements OnInit {
 
 	readonly loading = signal(true);
 	readonly saving = signal(false);
-	readonly saved = signal(false);
 	readonly errorMessages = signal<string[]>([]);
 
 	readonly form = this.fb.group({
@@ -174,7 +175,6 @@ export class AboutYouComponent implements OnInit {
 	}
 
 	submit(): void {
-		this.saved.set(false);
 		this.errorMessages.set([]);
 		this.form.markAllAsTouched();
 		if (this.form.invalid) {
@@ -192,7 +192,10 @@ export class AboutYouComponent implements OnInit {
 			.subscribe({
 				next: () => {
 					this.form.markAsPristine();
-					this.saved.set(!this.journey.goNext(STEP_PATHS.aboutYou));
+					// The last step: saving it submits the application.
+					if (!this.journey.goNext(STEP_PATHS.aboutYou)) {
+						void this.router.navigateByUrl(COMPLETE_PATH);
+					}
 				},
 				error: (error: unknown) => {
 					this.errorMessages.set(toErrorMessages(error));

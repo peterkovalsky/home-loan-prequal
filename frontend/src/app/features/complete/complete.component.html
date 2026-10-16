@@ -1,0 +1,21 @@
+<section class="complete card border-0 shadow-sm" aria-labelledby="complete-heading">
+	<div class="card-body text-center p-4 p-md-5">
+		<svg class="complete__tick" viewBox="0 0 52 52" aria-hidden="true">
+			<circle class="complete__circle" cx="26" cy="26" r="24" />
+			<path class="complete__check" d="M15 27 l7 7 l15 -16" />
+		</svg>
+
+		<h1 id="complete-heading" class="h3 mt-4 mb-2">Application submitted</h1>
+		<p class="text-body-secondary mb-1">
+			{{ firstName() ? 'Thanks, ' + firstName() + '. ' : '' }}We've received your pre-qualification, and a lending
+			specialist will be in touch.
+		</p>
+		@if (reference()) {
+			<p class="mb-4">
+				Your reference is <strong class="complete__reference">{{ reference() }}</strong>
+			</p>
+		}
+
+		<button type="button" class="btn btn-primary" (click)="startNewApplication()">Start a new application</button>
+	</div>
+</section>

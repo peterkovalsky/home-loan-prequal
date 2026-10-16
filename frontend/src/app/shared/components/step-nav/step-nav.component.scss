@@ -1,3 +1,9 @@
+// Component hosts are inline by default; a block host with block content inside avoids the
+// browser hit-testing the host instead of the links (seen on the completion screen).
+:host {
+	display: block;
+}
+
 .step-nav {
 	background: var(--app-surface);
 	border: 1px solid var(--app-border);
