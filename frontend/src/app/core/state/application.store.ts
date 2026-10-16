@@ -1,7 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApplicantCountRange, applicantCountRange } from '../../shared/validation/applicant-count';
-import { CURRENT_APPLICATION_ID } from '../api/api.config';
 import { ApplicantsService } from '../api/applicants.service';
 import { LoanDetailsService } from '../api/loan-details.service';
 import { APP_CONFIG } from '../config/app-config';
@@ -17,7 +16,7 @@ export class ApplicationStore {
 	private readonly applicantsService = inject(ApplicantsService);
 	private readonly config = inject(APP_CONFIG);
 
-	readonly applicationId = CURRENT_APPLICATION_ID;
+	readonly applicationId = this.config.applicationId;
 
 	private readonly loanDetailsResource = new CachedResource(() => this.loanDetailsService.get(this.applicationId));
 	private readonly applicantsResource = new CachedResource(() => this.applicantsService.get(this.applicationId));

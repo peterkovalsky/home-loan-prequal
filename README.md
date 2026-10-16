@@ -130,5 +130,5 @@ Then delete the `CDKToolkit` stack, its S3 bucket and its ECR repository in the 
 ## Known limitations
 
 - There is no authentication, and the application id is fixed at `1` (as in the starter). See NOTES → Improvements.
-- Each live E2E run resets application `1`, so data saved there by hand is wiped on the next deploy.
+- The app always edits application `1`. The E2E journeys use their own application (`900100`, set through `config.json`) and the smoke test uses `900001`, so a deploy never wipes what you've entered by hand.
 - Cold starts: one provisioned instance keeps the API warm, so one-at-a-time traffic has none. A request that needs a second instance takes about 1.35 s (it was about 2 s, and about 7 s right after a deploy). Measured numbers are in NOTES. The provisioned instance costs about US$15–20/month; set `apiProvisionedConcurrency` to `0` in `infra/cdk.json` to turn it off.

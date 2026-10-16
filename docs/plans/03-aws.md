@@ -128,7 +128,7 @@ infra/
    - `/health/ready`;
    - on application **900001**: PUT loan details (201), GET (200 plus ETag), PUT applicants, GET, PUT without `If-Match` (428), DELETE (204).
    - Using application 900001 means demo data in application 1 isn't touched.
-4. **Playwright against the live API.** Write `config/aws/config.json`, then run `E2E_CONFIGURATION=aws npm run e2e`. The reset calls `DELETE` on the deployed API. This deletes application 1, so the demo data is reset on each deploy; noted in the README.
+4. **Playwright against the live API.** Write `config/aws/config.json`, then run `E2E_CONFIGURATION=aws npm run e2e`. The reset calls `DELETE` on the deployed API. ~~This deletes application 1, so the demo data is reset on each deploy.~~ Changed after it wiped a manual test (ai-log #16): the journeys now use their own application, `900100`, set through `config.json`.
 5. A job summary with the API URL and the commands to run the front end against it.
 
 **`destroy.yml`:** `workflow_dispatch`, requiring the input `destroy` typed in, then `cdk destroy --all --force` (the database included). The bootstrap and OIDC stacks are kept, so a later push can redeploy.

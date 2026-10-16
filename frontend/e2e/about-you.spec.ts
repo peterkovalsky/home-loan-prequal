@@ -1,8 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { ALEX, JORDAN, agreeToTerms, applicant, completeLoanDetails, fillApplicant, resetApplication } from './journey';
+import {
+	ALEX,
+	JORDAN,
+	agreeToTerms,
+	applicant,
+	completeLoanDetails,
+	fillApplicant,
+	useTestApplication
+} from './journey';
 
 test.describe('About you', () => {
-	test.beforeEach(({ request }) => resetApplication(request));
+	test.beforeEach(({ page, request }) => useTestApplication(page, request));
 
 	test('two applicants can complete the step', async ({ page }) => {
 		await completeLoanDetails(page, 'Two of us');

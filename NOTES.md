@@ -429,7 +429,7 @@ flowchart LR
 - **Generated client types:** generate the TypeScript models from the OpenAPI document instead of keeping them in step by hand.
 - **Logging and access:** log-based metrics on correlation ids, and IAM Identity Center for people instead of an IAM user's access key.
 
-**Unfinished:** nothing from the brief. A known rough edge: each deploy's E2E run resets application `1` on the live API.
+**Unfinished:** nothing from the brief. (Fixed after a manual test: each deploy's E2E run used to reset application `1` on the live API, wiping hand-entered data. The journeys now use their own application, `900100`.)
 
 ---
 

@@ -8,9 +8,11 @@ export const MOCK_LATENCY_MS = 400;
 
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
 	const config = inject(APP_CONFIG);
-	const apiBasePath = new URL(config.apiBaseUrl, 'http://localhost').pathname;
-	const path = new URL(req.url, 'http://localhost').pathname;
-	if (!path.startsWith(apiBasePath)) {
+	// Match origin and path: third-party APIs (Addressfinder's is /api/au/...) must pass through.
+	const api = new URL(config.apiBaseUrl, 'http://localhost');
+	const url = new URL(req.url, 'http://localhost');
+	const path = url.pathname;
+	if (url.origin !== api.origin || !path.startsWith(api.pathname)) {
 		return next(req);
 	}
 

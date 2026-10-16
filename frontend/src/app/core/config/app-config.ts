@@ -6,6 +6,10 @@ export interface AppConfig {
 	useMockApi: boolean;
 	maxApplicants: number;
 	termsVersion: string;
+	/** The application the journey edits. Fixed (default 1) until creating and resuming applications exists. */
+	applicationId: number;
+	/** Addressfinder's public key for address suggestions. Absent or empty: a plain text field. */
+	addressFinderKey?: string;
 }
 
 export const APP_CONFIG = new InjectionToken<AppConfig>('APP_CONFIG');
@@ -28,10 +32,18 @@ export function parseAppConfig(raw: unknown): AppConfig {
 	) {
 		throw new Error('config.json is missing apiBaseUrl, useMockApi, maxApplicants or termsVersion.');
 	}
+	if (config.applicationId !== undefined && !(Number.isInteger(config.applicationId) && config.applicationId > 0)) {
+		throw new Error('config.json applicationId must be a positive integer.');
+	}
+	if (config.addressFinderKey !== undefined && typeof config.addressFinderKey !== 'string') {
+		throw new Error('config.json addressFinderKey must be a string.');
+	}
 	return {
 		apiBaseUrl: config.apiBaseUrl.replace(/\/+$/, ''),
 		useMockApi: config.useMockApi,
 		maxApplicants: config.maxApplicants!,
-		termsVersion: config.termsVersion
+		termsVersion: config.termsVersion,
+		applicationId: config.applicationId ?? 1,
+		addressFinderKey: config.addressFinderKey?.trim() || undefined
 	};
 }

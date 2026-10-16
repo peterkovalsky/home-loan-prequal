@@ -1,4 +1,5 @@
 import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { LoanDetails } from '../core/models/loan-details.model';
 import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage } from '../core/models/reference-data';
@@ -94,4 +95,22 @@ describe('mockApiInterceptor', () => {
 
 		expect(etags).toEqual(['"1"', '"2"']);
 	}));
+
+	it('passes through requests to other origins, even when their path starts with /api', () => {
+		TestBed.resetTestingModule();
+		TestBed.configureTestingModule({
+			providers: [
+				provideTestAppConfig(),
+				provideHttpClient(withInterceptors([mockApiInterceptor])),
+				provideHttpClientTesting()
+			]
+		});
+		const client = TestBed.inject(HttpClient);
+		const backend = TestBed.inject(HttpTestingController);
+
+		client.get('https://api.addressfinder.io/api/au/address/autocomplete/').subscribe();
+
+		backend.expectOne('https://api.addressfinder.io/api/au/address/autocomplete/').flush({});
+		backend.verify();
+	});
 });
