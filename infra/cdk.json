@@ -8,7 +8,7 @@
     "allowedOrigins": "http://localhost:4200,http://localhost:4300",
     "budgetEmail": "",
     "apiMemoryMb": "1769",
-    "apiProvisionedConcurrency": "0",
+    "apiProvisionedConcurrency": "1",
     "@aws-cdk/core:defaultCrossStackReferences": "strong",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:target-partitions": ["aws"]
