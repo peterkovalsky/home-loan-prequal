@@ -3,6 +3,8 @@ using Amazon.CDK.AWS.Apigatewayv2;
 using Amazon.CDK.AWS.Budgets;
 using Amazon.CDK.AWS.CloudWatch;
 using Amazon.CDK.AWS.EC2;
+using Amazon.CDK.AWS.Events;
+using EventTargets = Amazon.CDK.AWS.Events.Targets;
 using Amazon.CDK.AWS.Ecr.Assets;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
@@ -26,7 +28,9 @@ internal sealed class ApiStack : Stack
             ["Database__Host"] = data.Database.DbInstanceEndpointAddress,
             ["Database__Port"] = data.Database.DbInstanceEndpointPort,
             ["Database__Name"] = DataStack.DatabaseName,
-            ["Database__AppSecretArn"] = data.AppLoginSecret.SecretArn
+            ["Database__AppSecretArn"] = data.AppLoginSecret.SecretArn,
+            // One setting for both: the API stops resuming, the purge deletes, at the same age.
+            ["Applications__ResumeExpiryDays"] = settings.ResumeExpiryDays.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
 
         var migrator = Function(this, "MigratorFunction", "migrator-lambda", data, memoryMb: 512, Duration.Minutes(5),
@@ -54,6 +58,23 @@ internal sealed class ApiStack : Stack
             ExecuteOnHandlerChange = true
         });
         migrate.ExecuteBefore(api);
+
+        // Personal data isn't kept longer than needed: once a day the migrator (which has the admin
+        // login) deletes drafts of inactive applications and inactive unfinished ones. 16:00 UTC is
+        // 2-3am in Sydney.
+        new Rule(this, "PurgeExpiredDaily", new RuleProps
+        {
+            Description = "Deletes expired drafts and unfinished applications.",
+            Schedule = Schedule.Cron(new Amazon.CDK.AWS.Events.CronOptions { Minute = "0", Hour = "16" }),
+            Targets =
+            [
+                new EventTargets.LambdaFunction(migrator, new EventTargets.LambdaFunctionProps
+                {
+                    Event = RuleTargetInput.FromObject(new Dictionary<string, object> { ["task"] = "purge-expired" }),
+                    RetryAttempts = 2
+                })
+            ]
+        });
 
         // API Gateway calls a published version through the "live" alias. Provisioned concurrency
         // (cdk.json apiProvisionedConcurrency) keeps that many instances initialised, so the first

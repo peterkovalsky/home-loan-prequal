@@ -18,12 +18,12 @@ Unfinished work and improvements are in [section 8](#8-improvements-and-unfinish
 |---|---|---|
 | **"More than two" applicants** | Start with **3** sections; "Add another applicant" up to **4** (configurable `maxApplicants`); remove down to 3. The server enforces the same range. | Three is the smallest number that is "more than two". A cap stops unbounded input. 4 is a common lender limit, and it's config, not code. |
 | **Changing the count afterwards** | If Loan details goes from 2 applicants to 1, applicant 2 is **kept in memory but not submitted**; going back to 2 restores them. The server replaces the whole set on save. | No surprise data loss, and no stale applicant reaches the server. |
-| **Back without losing input** | About you's unsaved form is kept as an **in-memory draft** whenever you leave the step, by Back, the step nav or any other route. | A server "draft" endpoint would need relaxed validation. Not using `localStorage` keeps personal details (dates of birth, mobiles) out of browser storage. **Trade-off:** a page refresh loses unsaved input. |
+| **Saving progress and coming back** | Answers are **saved to the server as the customer types** (1 s after a pause, and at once when the tab is hidden or closed), valid or not, as a per-step **draft**. Closing the browser and coming back restores them and opens the furthest step. Back works the same way. See [Drafts and resuming](#drafts-and-resuming). | Asked for after the brief: people fill a loan form in several sittings. The brief's "Back keeps input" falls out of the same mechanism. |
 | **Terms** | A native `<dialog>` with placeholder text. "I agree" ticks the checkbox. Consent is sent with a **terms version**, and the customer must agree again when the version changes. | `<dialog>` gives focus trapping and Esc without Bootstrap JS. Versioned consent gives an audit trail. |
 | **18 or older** | Age is calculated from the date in **Australia/Sydney** (server, via `TimeProvider`), and dates are parsed as local dates (client). Boundaries tested: birthday today, tomorrow, 29 Feb, future dates, over 120. | Otherwise someone turning 18 today is rejected on a Sydney morning (UTC is still on yesterday), and `new Date('yyyy-MM-dd')` is off by a day in some time zones. |
 | **Mobile** | Accept `0412 345 678`, `+61 412 345 678`, `61412345678` and `(04) 1234-5678`, and **store `04XXXXXXXX`**. | People type mobiles many ways; one stored format. |
 | **Email** | Required for the primary applicant, optional for others, validated whenever present. Duplicate emails across applicants are allowed. | Couples often share an inbox; rejecting duplicates is a lender policy decision. |
-| **Application id** | Fixed at `1`, as in the starter. `PUT` creates the application row if it doesn't exist. | HTTP allows `PUT` to create at a client-chosen URI. In production, applications would be created with `POST`, have opaque ids, and be tied to the signed-in user. |
+| **Application id** | **Each visitor gets their own application**, created with `POST` when they first type. The server picks the id (a SQL `SEQUENCE`) and returns a random **resume token** once. Every request for the application must carry it; the server stores only its hash. | Drafts are personal data that can be reopened, so only the browser that started an application may reach it. A wrong, missing or expired token answers `404`, the same as a missing application, so ids can't be probed. |
 | **"Not saved yet"** | `GET` returns **404**, not `200 null`. The front-end client maps 404 to `null`, and the mock does the same. | Standard REST. The brief invited contract improvements. |
 | **Hidden answers** | Answers to questions that weren't asked (household for one applicant, deposit when not buying, address *and* state) are **rejected** by the server, not silently dropped. | "Never trust the client." |
 | **Rules on both sides** | Mobile, age, email and length rules are pure functions on the front end (shared by the form and the mock) and mirrored in `HomeLoan.Domain`, with **the same boundary tables in both test suites**. | Client rules are for UX; the server is the source of truth. |
@@ -130,6 +130,7 @@ flowchart LR
 | Created / updated | `201` + `Location` / `200`, both with `ETag` |
 | Not saved yet | `404` ProblemDetails |
 | Field errors | `400` `ValidationProblemDetails`, keys such as `applicants[1].mobile` |
+| Wrong, missing or expired resume token | `404` (the same as no such application) |
 | Applicants before Loan details | `409` |
 | `If-Match` missing (resource exists) | `428` |
 | Stale `If-Match`, or `If-Match` on a resource that doesn't exist | `412` |
@@ -160,6 +161,7 @@ erDiagram
     Application ||--o| ApplicantSet : "has (1:1)"
     ApplicantSet ||--|{ Applicant : "owns 1..4"
     Application ||--o{ ConsentRecord : "audit log"
+    Application ||--o{ ApplicationDraft : "a draft per step"
     LendingPurpose ||--o{ LoanDetails : "purpose"
     PropertyUsage ||--o{ LoanDetails : "usage"
     ApplicantCount ||--o{ LoanDetails : "who applies"
@@ -167,8 +169,16 @@ erDiagram
     Title ||--o{ Applicant : "title"
 
     Application {
-        int Id PK "client-chosen, CHECK > 0"
+        int Id PK "from a SEQUENCE"
+        binary ResumeTokenHash "SHA-256 of the token"
+        datetime2 LastActivityAt "expiry and purge"
         datetime2 CreatedAt
+    }
+    ApplicationDraft {
+        int ApplicationId PK, FK "cascade delete"
+        varchar Step PK "loan-details or about-you"
+        nvarchar Data "JSON object, at most 32 KB"
+        datetime2 UpdatedAt
     }
     LoanDetails {
         int ApplicationId PK, FK "cascade delete"
@@ -251,6 +261,41 @@ erDiagram
   - The `ref` foreign keys have no indexes, because those tables are tiny and never deleted from.
 - **Migrations:** DbUp runs versioned scripts, one transaction each, journaled. An idempotent "always" script creates the **`homeloan_app` login with data-only rights** (`SELECT/INSERT/UPDATE/DELETE` on `app`, `SELECT` on `ref`). The API connects as that login, and a test proves `CREATE TABLE` is denied.
 - **`READ_COMMITTED_SNAPSHOT` is on,** so reads never wait on writes.
+
+### Drafts and resuming
+
+([plan](docs/plans/06-server-drafts.md))
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (localStorage)
+    participant A as API
+    participant D as SQL Server
+    B->>A: first keystroke: POST /applications
+    A->>D: INSERT Application (token hash)
+    A-->>B: 201 {id, resumeToken} (shown once)
+    loop as they type (1 s after a pause, and when the tab hides)
+        B->>A: PUT /applications/{id}/drafts/{step} + X-Application-Token
+        A->>D: check token hash and expiry, touch LastActivityAt
+        A->>D: upsert ApplicationDraft (last write wins)
+    end
+    B->>A: Continue: PUT /applications/{id}/loan-details (If-Match)
+    A->>D: validated save + DELETE the step's draft, one transaction
+    Note over B,A: browser closed, opened days later
+    B->>A: GET /drafts, /loan-details, /applicants
+    A-->>B: saved answers, with any newer draft on top
+```
+
+- **Drafts are kept apart from the validated tables.** A half-filled form can't weaken their constraints. A draft is only checked for being a JSON object of at most 32 KB, for a known step.
+- **Last write wins for drafts**, not `If-Match`: an autosave conflict between two tabs shouldn't interrupt anyone. The real save keeps its `412` protection.
+- **No autosave can land after the real save.** Continue waits for any draft save in flight, and saves strictly in order. A late draft would recreate a stale copy that wins on the next visit (ai-log #17).
+- **Where the token lives:** in `localStorage`, sent as a header.
+  - An API cookie would be a third-party cookie here, because `localhost` and `execute-api.amazonaws.com` are different sites, and browsers block those.
+  - The API already accepts the token as a cookie too. Once the front end and `/api` share a domain, it becomes an `HttpOnly` cookie, which XSS can't read.
+- **Seven days:** an application unused for 7 days can't be resumed.
+  - A daily scheduled run of the migrator Lambda (EventBridge) deletes drafts of inactive applications, and inactive applications that were never finished. Finished ones stay as the lender's record.
+  - One `cdk.json` setting (`resumeExpiryDays`) drives both the API and the purge.
+- **Shared computers:** "Not you? Start a new application" forgets the application on that device. It doesn't delete it: its owner may want it, nobody can reach it without the token, and an unfinished one is purged.
 
 ### Transactions and concurrent saves
 
@@ -438,11 +483,10 @@ flowchart LR
 - **Show server field errors next to the field.** Keys like `applicants[1].mobile` already arrive; today they're listed in the summary.
 - **Serve the applicant cap and terms version from the API** (`GET /api/config`), so the front end and server can't drift. Today they're set in both places.
 - **Applicant identity.** Ids are stable per position, not per person, so removing applicant 2 of 4 shifts applicant 3 into position 2. Fixing it needs the client to send ids.
-- **Saved drafts on the server,** so a refresh doesn't lose input, with relaxed "draft" validation.
 
 **Platform:**
 
-- **Authentication:** Cognito or a JWT authorizer on API Gateway, applications owned by the user, opaque ids, and `POST /applications`.
+- **Authentication:** Cognito or a JWT authorizer on API Gateway, with an application linked to the account at sign-up. Today it's an anonymous resume token, and moving it into an `HttpOnly` cookie once the front end shares the API's domain.
 - **Database hardening:** RDS Proxy, Multi-AZ, deletion protection with snapshots, secret rotation, and column encryption for date of birth and mobile.
 - **Narrower deploy role:** tighten the CDK CloudFormation execution role (`--cloudformation-execution-policies`).
 - **Cold starts:** one provisioned instance is on (see AWS design). Next would be a second instance for parallel loads, or a lighter secret fetch.
@@ -451,7 +495,7 @@ flowchart LR
 - **Generated client types:** generate the TypeScript models from the OpenAPI document instead of keeping them in step by hand.
 - **Logging and access:** log-based metrics on correlation ids, and IAM Identity Center for people instead of an IAM user's access key.
 
-**Unfinished:** nothing from the brief. (Fixed after a manual test: each deploy's E2E run used to reset application `1` on the live API, wiping hand-entered data. The journeys now use their own application, `900100`.)
+**Unfinished:** nothing from the brief. (Fixed after a manual test: each deploy's E2E run used to reset application `1` on the live API, wiping hand-entered data, ai-log #16. Since server drafts, every browser, and so every test, gets its own application.)
 
 ---
 
@@ -479,11 +523,11 @@ flowchart LR
 - **Repeatable changes:** a repo skill (`.claude/skills/add-journey-step`) makes "add a step" or "add a field" changes predictable.
 - **Plans updated, not replaced:** each plan has an "As built" section listing every difference from it, with the reason.
 
-**Where the AI was wrong, and how it was caught.** There are 15 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
+**Where the AI was wrong, and how it was caught.** There are 17 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
 
 | Type | Examples | Caught by |
 |---|---|---|
-| **Design gaps** | Undershooting the brief with "keep it simple" (#1); one concurrency version shared by every resource, which would give false 412s (#4) | Plan review against the brief; tracing the Back/Continue journey |
+| **Design gaps** | Undershooting the brief with "keep it simple" (#1); one concurrency version shared by every resource, which would give false 412s (#4); test runs resetting the application people demo with (#16); an autosave able to land after the real save (#17) | Plan review against the brief; tracing the Back/Continue journey; a manual test; a unit test written for the race |
 | **Tests that couldn't fail, or only one way to pass** | An assertion-free spec (#2); a test that passed with the feature deleted (#3); a race test that accepted only one of two correct interleavings (#14) | Self-review and a mutation check |
 | **Environment-specific bugs** | Malformed JSON giving 500 in Development only (#5); error-level log noise from client mistakes (#6); a race only seen on CI (#7); the Lambda adapter disposing request scopes synchronously (#8) | curl smoke tests, reading test output, the CI logs, the Lambda emulator |
 | **Wrong assumptions about the platform** | Time-zone data missing from the Lambda image (#9); GitHub's OIDC subject format (#11); CORS for the test origin (#12); a start-up hook that never fires on Lambda, and a script that couldn't force cold starts (#13) | The image build, the first deploy, a curl preflight, reading raw CloudWatch streams |

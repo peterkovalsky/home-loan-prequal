@@ -9,6 +9,7 @@
     "budgetEmail": "",
     "apiMemoryMb": "1769",
     "apiProvisionedConcurrency": "1",
+    "resumeExpiryDays": "7",
     "@aws-cdk/core:defaultCrossStackReferences": "strong",
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:target-partitions": ["aws"]

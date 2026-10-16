@@ -27,6 +27,7 @@ public sealed class StackTests
                 ["budgetEmail"] = budgetEmail,
                 ["apiMemoryMb"] = "1024",
                 ["apiProvisionedConcurrency"] = provisionedConcurrency.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["resumeExpiryDays"] = "7",
                 ["@aws-cdk/core:defaultCrossStackReferences"] = "strong",
                 ["availability-zones:account=085843960390:region=ap-southeast-2"] = AvailabilityZones
             }
@@ -170,5 +171,22 @@ public sealed class StackTests
         Assert.Null(onDemand["ProvisionedConcurrencyConfig"]);
         Assert.Contains("ApiLive", integration["IntegrationUri"]!.ToJsonString(), StringComparison.Ordinal);
         Assert.Equal(1, (int)provisioned["ProvisionedConcurrencyConfig"]!["ProvisionedConcurrentExecutions"]!);
+    }
+
+    [Fact]
+    public void Expired_personal_data_is_purged_daily_by_the_migrator_with_the_same_expiry_as_the_api()
+    {
+        var rule = Resources(Templates.Value.Api, "AWS::Events::Rule").Single()["Properties"]!;
+        var target = rule["Targets"]!.AsArray().Single()!;
+
+        Assert.Equal("cron(0 16 * * ? *)", (string?)rule["ScheduleExpression"]);
+        Assert.Equal("""{"task":"purge-expired"}""", (string?)target["Input"]);
+        Assert.Contains("MigratorFunction", target["Arn"]!.ToJsonString(), StringComparison.Ordinal);
+
+        var expiries = Resources(Templates.Value.Api, "AWS::Lambda::Function")
+            .Select(f => (string?)f["Properties"]!["Environment"]?["Variables"]?["Applications__ResumeExpiryDays"])
+            .Where(v => v is not null)
+            .ToList();
+        Assert.Equal(["7", "7"], expiries);
     }
 }

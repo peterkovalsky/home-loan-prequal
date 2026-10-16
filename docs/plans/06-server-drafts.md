@@ -1,6 +1,6 @@
 # Plan: server-side drafts and resuming an application
 
-Status: **approved, in progress.** Expiry set to 7 days in review.
+Status: **done.** Expiry set to 7 days in review.
 
 ## Goal
 
@@ -112,3 +112,23 @@ This replaces the fixed application id. It also closes today's gap where anyone 
 - **Accounts or sign-in:** a separate step; drafts link to the account later.
 - **Real-time sync between tabs:** last write wins is enough for one person.
 - **Field-level server validation of drafts:** drafts are allowed to be incomplete; validation happens on Continue.
+
+## As built
+
+| Planned | Built | Why |
+|---|---|---|
+| `GET /api/applications/current` to resume | The browser keeps the id with the token and calls `GET /drafts` (plus the existing `GET`s) | One endpoint fewer. A `404` from `/drafts` means the application has expired or gone, and the front end starts afresh. |
+| `RowVersion` on `ApplicationDraft` | No row version | Drafts are last write wins, so it would never be read. |
+| The token check inside the request's transaction | One autocommit `UPDATE` (check and touch) before the handler runs | No lock outlives the statement, so a failed save can't hold the application row until after the response (ai-log #7). |
+| `IDENTITY` ids | A `SEQUENCE` default, starting at 1,000,000 | SQL Server can't make an existing column `IDENTITY` in place, and it stays clear of ids used before. |
+| Existing applications | Kept, but unreachable (no token hash), and purged with other inactive ones | A destructive migration wasn't needed. |
+| Restore: draft *or* saved | Saved answers first, then the draft on top | A unit test showed a partial draft blanking saved fields. Layering is safer. |
+| `beforeSave()` before the real save | Plus "last sent" that can only move forwards | The race test failed first (ai-log #17). |
+| A daily cleanup Lambda | The migrator Lambda with `{"task":"purge-expired"}`, from an EventBridge rule | It already has the admin login and runs in the VPC, so there's no new function, image or secret. |
+| "Start a new application" resets in place | A full page load after forgetting the session | Every step and cache starts empty, with no half-reset state. |
+
+**Checked:**
+- 103 unit and 59 integration tests on the back end, including mutation checks of the token filter.
+- 156 unit tests on the front end, including a mutation check of the Continue race.
+- 10 Playwright journeys on the mock and on Docker Compose; one of them closes the browser and comes back.
+- The smoke test against Compose, and both Lambda images under the Runtime Interface Emulator.

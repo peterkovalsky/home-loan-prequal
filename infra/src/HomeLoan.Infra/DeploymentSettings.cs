@@ -11,7 +11,8 @@ internal sealed record DeploymentSettings(
     IReadOnlyList<string> AllowedOrigins,
     string? BudgetEmail,
     int ApiMemoryMb,
-    int ApiProvisionedConcurrency)
+    int ApiProvisionedConcurrency,
+    int ResumeExpiryDays)
 {
     public static DeploymentSettings From(Construct scope)
     {
@@ -28,7 +29,8 @@ internal sealed record DeploymentSettings(
             Required("allowedOrigins").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             scope.Node.TryGetContext("budgetEmail") as string is { Length: > 0 } email ? email : null,
             Number("apiMemoryMb", 128, 10_240),
-            Number("apiProvisionedConcurrency", 0, 10));
+            Number("apiProvisionedConcurrency", 0, 10),
+            Number("resumeExpiryDays", 1, 90));
 
         // Context values arrive as strings from cdk.json/-c and as numbers from code; accept both.
         int Number(string key, int min, int max) =>

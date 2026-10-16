@@ -75,12 +75,12 @@ cd frontend && npm run start:aws     # http://localhost:4200 → https://…exec
 | Suite | Command | What it proves |
 |---|---|---|
 | Front end lint and format | `cd frontend && npm run format:check && npm run lint` | Prettier and angular-eslint, with `OnPush` enforced |
-| Front end unit (126) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API, address suggestions |
-| Journeys on the mock (7) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard, address suggestions (Addressfinder stubbed) |
-| Journeys on the real stack (7) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
-| Back end unit (85) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution |
-| Back end integration (47) | `cd backend && dotnet test tests/HomeLoan.IntegrationTests` | Real SQL Server (Testcontainers): the HTTP contract, **concurrent-save races**, every schema constraint, least-privilege login |
-| Infra (10) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust |
+| Front end unit (156) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API, address suggestions, session, autosave (debounce, ordering, retry, the Continue race) |
+| Journeys on the mock (10) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard, address suggestions (Addressfinder stubbed), **closing the browser and coming back**, "Not you?" |
+| Journeys on the real stack (10) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
+| Back end unit (103) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution, resume tokens, drafts |
+| Back end integration (59) | `cd backend && dotnet test tests/HomeLoan.IntegrationTests` | Real SQL Server (Testcontainers): the HTTP contract, **concurrent-save races**, every schema constraint, least-privilege login, **the token on every route**, expiry, drafts, the purge |
+| Infra (11) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust, the daily purge |
 | Lambda images | `backend/scripts/lambda-local-check.sh` (with Compose's SQL Server up) | Both Lambda images under AWS's Runtime Interface Emulator with real API Gateway events |
 | Live API | `backend/scripts/smoke-test.sh <api-endpoint>` | End to end on AWS, on application `900001` |
 | Cold starts | `scripts/measure-cold-start.sh [minutes] [parallel-requests]` | Init, first-request and per-phase start-up times of the live version, from CloudWatch |
@@ -129,6 +129,5 @@ Then delete the `CDKToolkit` stack, its S3 bucket and its ECR repository in the 
 
 ## Known limitations
 
-- There is no authentication, and the application id is fixed at `1` (as in the starter). See NOTES → Improvements.
-- The app always edits application `1`. The E2E journeys use their own application (`900100`, set through `config.json`) and the smoke test uses `900001`, so a deploy never wipes what you've entered by hand.
+- There is no sign-in. Each browser gets its own application, reached only with the resume token kept in that browser's `localStorage`, so another device can't continue it. NOTES → Drafts and resuming, and Improvements.
 - Cold starts: one provisioned instance keeps the API warm, so one-at-a-time traffic has none. A request that needs a second instance takes about 1.35 s (it was about 2 s, and about 7 s right after a deploy). Measured numbers are in NOTES. The provisioned instance costs about US$15–20/month; set `apiProvisionedConcurrency` to `0` in `infra/cdk.json` to turn it off.
