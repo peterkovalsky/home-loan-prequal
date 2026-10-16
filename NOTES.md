@@ -53,7 +53,7 @@ All three parts are done; CI deploys to AWS on every push to `main`. Detail for 
   - MediatR (commercial licence);
   - a generic repository (it hides the SQL Dapper makes explicit);
   - API versioning (one client);
-  - sign-in (see Improvements).
+  - sign-in (see Out of scope).
 
 ## 4. Database
 
@@ -175,7 +175,7 @@ flowchart LR
   - one provisioned instance (about US$15–20/month; `apiProvisionedConcurrency` in `infra/cdk.json`).
 - **Cost:** about US$11–45/month, plus the provisioned instance. The Destroy workflow removes it all.
 
-## 6. Improvements
+## 6. Out of scope
 
 - **Sign-in** (Cognito), linking the application to an account; move the token into an `HttpOnly` cookie once the front end shares the API's domain.
 - **Lock submitted applications:** a status column and read-only routes.

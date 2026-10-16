@@ -129,5 +129,5 @@ Then delete the `CDKToolkit` stack, its S3 bucket and its ECR repository in the 
 
 ## Known limitations
 
-- There is no sign-in. Each browser gets its own application, reached only with the resume token kept in that browser's `localStorage`, so another device can't continue it. NOTES → Decisions and Improvements.
+- There is no sign-in. Each browser gets its own application, reached only with the resume token kept in that browser's `localStorage`, so another device can't continue it. NOTES → Decisions and Out of scope.
 - Cold starts: one provisioned instance keeps the API warm, so one-at-a-time traffic has none. A request that needs a second instance takes about 1.35 s (it was about 2 s, and about 7 s right after a deploy). Measured numbers are in NOTES. The provisioned instance costs about US$15–20/month; set `apiProvisionedConcurrency` to `0` in `infra/cdk.json` to turn it off.
