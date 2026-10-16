@@ -337,17 +337,33 @@ flowchart LR
 - Secret rotation.
 - A Secrets Manager endpoint in every AZ.
 
-**Cold starts (measured):**
+**Cold starts: measured, then reduced in three steps.** Each step went through the normal pipeline and was measured from CloudWatch with `scripts/measure-cold-start.sh`. The API logs its own start-up phases, and Lambda's `REPORT` lines give the init and first-request times.
 
-| Case | Time |
-|---|---|
-| First start after a deploy (container image being cached) | about 6.9 s |
-| A later cold start | about 2.6 s |
-| Warm requests | tens of ms |
+```mermaid
+flowchart LR
+    A["1024 MB<br/>start-up 1148 ms<br/>secret fetch 718 ms"] -->|"more CPU"| B["1769 MB<br/>826 ms"]
+    B -->|"fetch secret while<br/>building the host"| C["754 ms"]
+    C -->|"1 provisioned instance"| D["no cold start<br/>for one request at a time"]
+```
 
-Memory used is about 140 MB of 1 GB. The options are one provisioned-concurrency instance (about US$10 a month), less start-up work, or a zip package with SnapStart (which isn't available for container images).
+| Step | Lambda init | Our start-up code | First request after init |
+|---|---|---|---|
+| 1024 MB (baseline) | 1.1–1.5 s | 1148 ms, of which **718 ms is the secret fetch** | 549 ms |
+| 1769 MB (one full vCPU) | ~1.0 s | 826 ms (secret fetch 520 ms) | 336 ms |
+| Start the secret fetch before building the host | about the same | 754 ms | ~380 ms |
+| One provisioned-concurrency instance on the `live` alias | done ahead of time | — | **39 of 39** deploy-check requests had no cold start |
 
-**Cost while running:** roughly US$11 a month if RDS is free-tier eligible, otherwise about US$45. Most of it is the Secrets Manager endpoint and RDS. A budget alarm is built in but off (no email set); the Destroy workflow ends all charges.
+- Start-up figures are medians over 10 instance starts; init and first-request figures come from only 2–4 user-facing cold starts per step, so read them as ranges.
+- **A user-facing cold start went from about 2 s to about 1.35 s, and to none for one-at-a-time traffic.** The first start after a deploy used to take about 7 s while Lambda cached the new image. Provisioned concurrency now does that during the deploy.
+- **The secret fetch was the biggest cost:** the AWS SDK's first call, which loads the SDK, resolves credentials and the endpoint, and opens TLS. Overlapping it saved ~70 ms, not the 0.2–0.3 s I had estimated (ai-log #15). It's CPU-bound, and at this size Lambda has about one vCPU.
+- **The limit of one instance:** About you loads Loan details and applicants in parallel, so one user can need two instances, and the second request is an on-demand cold start (seen once in the deploy checks). Two instances would cover one user, at twice the cost.
+- **Cost:** about US$15–20 a month for the provisioned instance. Set `apiProvisionedConcurrency` to `0` in `infra/cdk.json` and push to turn it off. Memory stays at 1769 MB, which costs little at this traffic.
+- **Next options, not done:**
+  - Read the secret with a plain signed HTTP call instead of the SDK.
+  - Native AOT (Dapper would need Dapper.AOT).
+  - A zip package with SnapStart (not available for container images).
+
+**Cost while running:** roughly US$11 a month if RDS is free-tier eligible, otherwise about US$45, plus about US$15–20 while the provisioned instance is on. Most of it is the Secrets Manager endpoint and RDS. A budget alarm is built in but off (no email set); the Destroy workflow ends all charges.
 
 ### Deployment pipeline
 
@@ -407,7 +423,7 @@ Memory used is about 140 MB of 1 GB. The options are one provisioned-concurrency
 - **Authentication:** Cognito or a JWT authorizer on API Gateway, applications owned by the user, opaque ids, and `POST /applications`.
 - **Database hardening:** RDS Proxy, Multi-AZ, deletion protection with snapshots, secret rotation, and column encryption for date of birth and mobile.
 - **Narrower deploy role:** tighten the CDK CloudFormation execution role (`--cloudformation-execution-policies`).
-- **Cold starts:** provisioned concurrency, or trimming start-up work.
+- **Cold starts:** one provisioned instance is on (see AWS design). Next would be a second instance for parallel loads, or a lighter secret fetch.
 - **Alerting:** route the error alarm to SNS or email, and turn on the budget alarm (`budgetEmail` in `infra/cdk.json`).
 - **Front end:** deploy it to S3 and CloudFront, and lock CORS to that origin.
 - **Generated client types:** generate the TypeScript models from the OpenAPI document instead of keeping them in step by hand.
@@ -441,14 +457,15 @@ flowchart LR
 - **Repeatable changes:** a repo skill (`.claude/skills/add-journey-step`) makes "add a step" or "add a field" changes predictable.
 - **Plans updated, not replaced:** each plan has an "As built" section listing every difference from it, with the reason.
 
-**Where the AI was wrong, and how it was caught.** There are 12 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
+**Where the AI was wrong, and how it was caught.** There are 15 real entries in [`docs/ai-log.md`](docs/ai-log.md), none invented. By type:
 
 | Type | Examples | Caught by |
 |---|---|---|
 | **Design gaps** | Undershooting the brief with "keep it simple" (#1); one concurrency version shared by every resource, which would give false 412s (#4) | Plan review against the brief; tracing the Back/Continue journey |
-| **Tests that couldn't fail** | An assertion-free spec (#2); a test that passed with the feature deleted (#3) | Self-review and a mutation check |
+| **Tests that couldn't fail, or only one way to pass** | An assertion-free spec (#2); a test that passed with the feature deleted (#3); a race test that accepted only one of two correct interleavings (#14) | Self-review and a mutation check |
 | **Environment-specific bugs** | Malformed JSON giving 500 in Development only (#5); error-level log noise from client mistakes (#6); a race only seen on CI (#7); the Lambda adapter disposing request scopes synchronously (#8) | curl smoke tests, reading test output, the CI logs, the Lambda emulator |
-| **Wrong assumptions about the platform** | Time-zone data missing from the Lambda image (#9); GitHub's OIDC subject format (#11); CORS for the test origin (#12) | The image build, the first deploy, a curl preflight |
+| **Wrong assumptions about the platform** | Time-zone data missing from the Lambda image (#9); GitHub's OIDC subject format (#11); CORS for the test origin (#12); a start-up hook that never fires on Lambda, and a script that couldn't force cold starts (#13) | The image build, the first deploy, a curl preflight, reading raw CloudWatch streams |
+| **Optimistic estimates** | Expected 0.2–0.3 s from overlapping the secret fetch; measured ~70 ms (#15) | Measuring the deployed change before writing it up |
 | **Safety** | One `cdk synth` ran under the machine's *default* AWS profile, a different account. AWS denied it and nothing changed (#10). | Reading the output. Fixed with a wrapper that refuses any other account, and a synth that needs no credentials. |
 
 The lesson I took from it: the most valuable checks were the ones that ran the code **the way production does**. The emulator, the real database, concurrent requests, and the live deploy each caught a bug the unit tests passed.

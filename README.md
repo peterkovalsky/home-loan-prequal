@@ -78,11 +78,12 @@ cd frontend && npm run start:aws     # http://localhost:4200 → https://…exec
 | Front end unit (110) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API |
 | Journeys on the mock (6) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard |
 | Journeys on the real stack (6) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
-| Back end unit (84) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution |
+| Back end unit (85) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution |
 | Back end integration (47) | `cd backend && dotnet test tests/HomeLoan.IntegrationTests` | Real SQL Server (Testcontainers): the HTTP contract, **concurrent-save races**, every schema constraint, least-privilege login |
-| Infra (9) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust |
+| Infra (10) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust |
 | Lambda images | `backend/scripts/lambda-local-check.sh` (with Compose's SQL Server up) | Both Lambda images under AWS's Runtime Interface Emulator with real API Gateway events |
 | Live API | `backend/scripts/smoke-test.sh <api-endpoint>` | End to end on AWS, on application `900001` |
+| Cold starts | `scripts/measure-cold-start.sh [minutes] [parallel-requests]` | Init, first-request and per-phase start-up times of the live version, from CloudWatch |
 
 CI runs all of these. On `main` it then deploys, and re-runs the smoke test and the 6 journeys against the live API.
 
@@ -130,4 +131,4 @@ Then delete the `CDKToolkit` stack, its S3 bucket and its ECR repository in the 
 
 - There is no authentication, and the application id is fixed at `1` (as in the starter). See NOTES → Improvements.
 - Each live E2E run resets application `1`, so data saved there by hand is wiped on the next deploy.
-- The first request after a deploy takes about 7 s while Lambda pulls the new container image; later cold starts take about 2.6 s, and warm requests take milliseconds. Numbers and options are in NOTES.
+- Cold starts: one provisioned instance keeps the API warm, so one-at-a-time traffic has none. A request that needs a second instance takes about 1.35 s (it was about 2 s, and about 7 s right after a deploy). Measured numbers are in NOTES. The provisioned instance costs about US$15–20/month; set `apiProvisionedConcurrency` to `0` in `infra/cdk.json` to turn it off.

@@ -92,7 +92,7 @@ infra/
 | RDS | `sqlserver-ex` 16.00, `db.t3.micro`, gp3 20 GB, `storageEncrypted`, not publicly accessible, 1-day backups | Smallest and cheapest option, still encrypted and private. |
 | RDS removal | `RemovalPolicy.DESTROY`, no deletion protection, no final snapshot | An exercise environment that must tear down cleanly. NOTES says production would use RETAIN, deletion protection, snapshots and Multi-AZ. |
 | App secret | Generated, 32 characters, excluding `;'"=,{}` | Those characters would break a connection string or the SQL literal. |
-| Lambda `api` | arm64, 1024 MB, 15 s timeout, reserved concurrency 10 | More memory means more CPU and a faster cold start. The concurrency cap protects the database's connection limit and the bill. |
+| Lambda `api` | arm64, 1769 MB (was 1024; see cold starts below), 15 s timeout, reserved concurrency 10, `live` alias with 1 provisioned instance | More memory means more CPU and a faster cold start. The concurrency cap protects the database's connection limit and the bill. |
 | Lambda `migrator` | arm64, 512 MB, 5 min timeout | DbUp plus `EnsureDatabase` on first run. |
 | Migration trigger | `Triggers.Trigger`, runs after the database and secrets, re-runs when the image changes | Migrations are part of the deploy, not a separate step. |
 | HTTP API | `$default` route to `api`; throttling 20 requests/s, burst 40; JSON access logs | There's no auth, so throttling limits abuse and cost. |
@@ -159,7 +159,7 @@ I couldn't confirm this account's free-tier status from the CLI. The budget alar
 | ICU and tzdata missing in the Lambda base image (SqlClient, `Australia/Sydney`) | The local Runtime Interface Emulator run before any deploy; `/health/ready` in the smoke test |
 | Executable-assembly handler naming for the container image | Local emulator run |
 | First RDS SQL Server create takes about 20–30 minutes | Expected; the GitHub job timeout is set to 60 minutes |
-| Cold start (container plus VPC plus .NET) about 1–3 s | ReadyToRun, 1024 MB; NOTES has numbers measured from the smoke test |
+| Cold start (container plus VPC plus .NET) about 1–3 s | ReadyToRun; then measured and reduced (1769 MB, overlapped secret fetch, 1 provisioned instance). Numbers below and in NOTES. |
 | Two pushes in a row | `concurrency: deploy-aws` queues the second |
 | A failed migration | The Trigger fails, so CloudFormation rolls back the API stack and the previous version keeps serving |
 
@@ -200,15 +200,19 @@ I couldn't confirm this account's free-tier status from the CLI. The budget alar
 | Budget alarm | Not created (`budgetEmail` empty) | No address given. Set `budgetEmail` in `cdk.json` and push to add it. |
 | Planned as 3 infra commits | Built in one commit, plus 2 fixes from the first deploy | The stacks are small and were written together with their tests. |
 
-**Cold starts (measured from CloudWatch `REPORT` lines and the smoke test):**
+**Cold starts (measured from CloudWatch with `scripts/measure-cold-start.sh`).** First measured at 1024 MB, then reduced one step per deploy so each change has its own numbers:
 
-| Case | Init | First invoke | Total |
+| Step | Lambda init | API start-up (since `Main`, median of 10) | First request after init |
 |---|---|---|---|
-| First start after a deploy (image not yet cached) | 6.2 s | 0.7 s | about 6.9 s |
-| A later cold start | 1.8 s | 0.8 s | about 2.6 s |
-| Warm | — | — | tens of ms |
+| Before: first start after a deploy | 6.2 s (image not yet cached) | — | 0.7 s |
+| 1024 MB | 1.1–1.5 s | 1148 ms (secret fetch 718 ms) | 549 ms |
+| 1769 MB | ~1.0 s | 826 ms (secret fetch 520 ms) | 336 ms |
+| Secret fetch started before building the host | about the same | 754 ms | ~380 ms |
+| 1 provisioned instance on the `live` alias | ahead of time | — | 39 of 39 deploy-check requests warm |
 
-Memory used is about 140 MB of 1024 MB. **Options, not done:**
-- One provisioned-concurrency instance (no cold starts, about US$10/month).
-- Less start-up work: Swagger is already Development-only; also look at FluentValidation scanning and the secret fetch.
-- A zip package with SnapStart. SnapStart isn't available for container images, so this trades away the container requirement.
+- **Deviations from the plan:**
+  - Memory went to 1769 MB.
+  - API Gateway now calls a `live` alias, because provisioned concurrency needs a version or alias.
+  - Provisioned concurrency is on, about US$15–20/month; turn it off with `apiProvisionedConcurrency: "0"`.
+- **The measurement tooling needed two fixes** (ai-log #13): the start-up timings must be logged before `RunAsync`, because `ApplicationStarted` never fires under the Lambda adapter; and bursts of traffic can't force cold starts.
+- **Remaining gap:** About you loads two resources in parallel, so one user can still meet one on-demand cold start. Two instances would close it.
