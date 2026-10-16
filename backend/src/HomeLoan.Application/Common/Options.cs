@@ -29,3 +29,12 @@ public sealed class ClockOptions
     [Required]
     public string TimeZone { get; set; } = "Australia/Sydney";
 }
+
+public sealed class ApplicationOptions
+{
+    public const string Section = "Applications";
+
+    /// <summary>An application unused for this long can't be resumed, and unfinished ones are purged.</summary>
+    [Range(1, 90)]
+    public int ResumeExpiryDays { get; set; } = 7;
+}

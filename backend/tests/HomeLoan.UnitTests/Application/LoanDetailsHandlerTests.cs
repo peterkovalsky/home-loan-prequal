@@ -1,5 +1,6 @@
 using FluentValidation;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Application.Loans;
 
 namespace HomeLoan.UnitTests.Application;
@@ -7,9 +8,10 @@ namespace HomeLoan.UnitTests.Application;
 public class LoanDetailsHandlerTests
 {
     private readonly FakeLoanDetailsRepository repository = new();
+    private readonly FakeDraftRepository drafts = new();
     private readonly FakeUnitOfWork unitOfWork = new();
 
-    private SaveLoanDetailsHandler Handler() => new(new LoanDetailsValidator(), repository, unitOfWork);
+    private SaveLoanDetailsHandler Handler() => new(new LoanDetailsValidator(), repository, drafts, unitOfWork);
 
     private Task<Result<Saved<LoanDetailsDto>>> Save(LoanDetailsDto dto, string? ifMatch = null) =>
         Handler().HandleAsync(1, dto, ifMatch, CancellationToken.None);
@@ -22,6 +24,20 @@ public class LoanDetailsHandlerTests
         Assert.True(result.Value.Created);
         Assert.Equal(1, result.Value.Value.ApplicationId);
         Assert.Equal(1, unitOfWork.Commits);
+    }
+
+    [Fact]
+    public async Task A_successful_save_clears_the_step_draft_but_a_rejected_one_keeps_it()
+    {
+        drafts.Rows[(1, DraftSteps.LoanDetails)] = "{}";
+        drafts.Rows[(1, DraftSteps.AboutYou)] = "{}";
+
+        await Save(Samples.Refinance() with { LoanAmount = null });
+        Assert.True(drafts.Rows.ContainsKey((1, DraftSteps.LoanDetails)));
+
+        await Save(Samples.Refinance());
+        Assert.False(drafts.Rows.ContainsKey((1, DraftSteps.LoanDetails)));
+        Assert.True(drafts.Rows.ContainsKey((1, DraftSteps.AboutYou)));
     }
 
     [Fact]

@@ -42,12 +42,10 @@ public sealed class LoanDetailsRepository(DbSession session) : ILoanDetailsRepos
         var (connection, transaction) = await session.ForWriteAsync(cancellationToken);
         try
         {
-            // UPDLOCK + HOLDLOCK: two first saves for the same application can't both insert it.
+            // The application already exists (only POST creates one). Two first saves racing: the
+            // second hits the primary key and loses.
             var version = await connection.ExecuteScalarAsync<byte[]>(new CommandDefinition(
                 $"""
-                IF NOT EXISTS (SELECT 1 FROM app.Application WITH (UPDLOCK, HOLDLOCK) WHERE Id = @ApplicationId)
-                    INSERT INTO app.Application (Id) VALUES (@ApplicationId);
-
                 INSERT INTO app.LoanDetails (ApplicationId, {Columns})
                 OUTPUT inserted.RowVersion
                 VALUES (@ApplicationId, {Values});

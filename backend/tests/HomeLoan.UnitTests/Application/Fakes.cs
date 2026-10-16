@@ -1,5 +1,6 @@
 using HomeLoan.Application.Applicants;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Application.Loans;
 using HomeLoan.Domain;
 using Microsoft.Extensions.Options;
@@ -114,4 +115,27 @@ internal static class TestClock
 
     /// <summary>14 Oct 2026, midday in Sydney.</summary>
     public static BusinessClock Default => At(new DateTimeOffset(2026, 10, 14, 1, 0, 0, TimeSpan.Zero));
+}
+
+internal sealed class FakeDraftRepository : IDraftRepository
+{
+    public Dictionary<(int ApplicationId, string Step), string> Rows { get; } = [];
+
+    public Task<IReadOnlyList<Draft>> GetAllAsync(int applicationId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Draft>>(Rows
+            .Where(r => r.Key.ApplicationId == applicationId)
+            .Select(r => new Draft(r.Key.Step, r.Value, new DateTime(2026, 10, 16, 1, 2, 3)))
+            .ToList());
+
+    public Task SaveAsync(int applicationId, string journeyStep, string data, CancellationToken cancellationToken)
+    {
+        Rows[(applicationId, journeyStep)] = data;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(int applicationId, string journeyStep, CancellationToken cancellationToken)
+    {
+        Rows.Remove((applicationId, journeyStep));
+        return Task.CompletedTask;
+    }
 }

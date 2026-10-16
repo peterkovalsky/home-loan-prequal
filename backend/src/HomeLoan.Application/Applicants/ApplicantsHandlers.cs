@@ -1,5 +1,6 @@
 using FluentValidation;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Application.Loans;
 using HomeLoan.Domain;
 using Microsoft.Extensions.Options;
@@ -21,6 +22,7 @@ public sealed class SaveApplicantsHandler(
     IValidator<SaveApplicantsRequest> validator,
     ILoanDetailsRepository loanDetails,
     IApplicantsRepository repository,
+    IDraftRepository drafts,
     IUnitOfWork unitOfWork,
     IBusinessClock clock,
     IOptions<ApplicantOptions> options)
@@ -65,6 +67,7 @@ public sealed class SaveApplicantsHandler(
         // Read back inside the transaction for the generated ids and the consent timestamp.
         var set = await repository.GetAsync(applicationId, cancellationToken)
             ?? throw new InvalidOperationException("Applicants vanished inside their own transaction.");
+        await drafts.DeleteAsync(applicationId, DraftSteps.AboutYou, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         var (version, created) = saved.Value;
         return new Saved<ApplicantsResponse>(ApplicantsResponse.FromDomain(applicationId, set.Value), version, created);

@@ -1,5 +1,6 @@
 using FluentValidation;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 
 namespace HomeLoan.Application.Loans;
 
@@ -17,6 +18,7 @@ public sealed class GetLoanDetailsHandler(ILoanDetailsRepository repository)
 public sealed class SaveLoanDetailsHandler(
     IValidator<LoanDetailsDto> validator,
     ILoanDetailsRepository repository,
+    IDraftRepository drafts,
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<Saved<LoanDetailsDto>>> HandleAsync(
@@ -46,6 +48,8 @@ public sealed class SaveLoanDetailsHandler(
             return saved.Error!;
         }
 
+        // The validated answers are now the only copy; the draft would only go stale.
+        await drafts.DeleteAsync(applicationId, DraftSteps.LoanDetails, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
         var (version, created) = saved.Value;
         return new Saved<LoanDetailsDto>(LoanDetailsDto.FromDomain(applicationId, details), version, created);

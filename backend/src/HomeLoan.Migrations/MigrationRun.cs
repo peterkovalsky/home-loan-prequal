@@ -15,6 +15,20 @@ public static class MigrationRun
         }
         return DatabaseMigrator.Migrate(admin, configuration["Database:AppLoginPassword"], log);
     }
+
+    /// <summary>Deletes expired drafts and unfinished applications (see <see cref="DataRetention"/>).</summary>
+    public static PurgeSummary PurgeFromConfiguration(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var admin = configuration.GetConnectionString("Admin");
+        if (string.IsNullOrWhiteSpace(admin))
+        {
+            throw new InvalidOperationException("ConnectionStrings:Admin (or Database:AdminSecretArn) is required.");
+        }
+        // Same setting, and default, as the API's Applications:ResumeExpiryDays.
+        var days = int.TryParse(configuration["Applications:ResumeExpiryDays"], out var configured) ? configured : 7;
+        return DataRetention.PurgeExpired(admin, days);
+    }
 }
 
 /// <summary>What the Lambda returns to its caller (the CDK deploy trigger).</summary>

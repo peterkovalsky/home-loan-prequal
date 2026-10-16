@@ -2,6 +2,7 @@ using FluentValidation;
 using HomeLoan.Application.Applicants;
 using HomeLoan.Application.Applications;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Application.Loans;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,7 +22,11 @@ public static class DependencyInjection
         services.AddScoped<SaveLoanDetailsHandler>();
         services.AddScoped<GetApplicantsHandler>();
         services.AddScoped<SaveApplicantsHandler>();
+        services.AddScoped<CreateApplicationHandler>();
+        services.AddScoped<ApplicationAccess>();
         services.AddScoped<DeleteApplicationHandler>();
+        services.AddScoped<GetDraftsHandler>();
+        services.AddScoped<SaveDraftHandler>();
         return services;
     }
 }

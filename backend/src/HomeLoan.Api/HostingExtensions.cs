@@ -40,12 +40,13 @@ internal static class HostingExtensions
         BindOptions<ConsentOptions>(builder, ConsentOptions.Section);
         BindOptions<ClockOptions>(builder, ClockOptions.Section)
             .Validate(o => TimeZoneInfo.TryFindSystemTimeZoneById(o.TimeZone, out _), "Clock:TimeZone is not a known time zone.");
+        BindOptions<ApplicationOptions>(builder, ApplicationOptions.Section);
         BindOptions<CorsOptions>(builder, CorsOptions.Section);
 
         builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy => policy
             .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-            .WithMethods("GET", "PUT", "DELETE")
-            .WithHeaders("Content-Type", "If-Match", CorrelationIdMiddleware.Header)
+            .WithMethods("GET", "POST", "PUT", "DELETE")
+            .WithHeaders("Content-Type", "If-Match", CorrelationIdMiddleware.Header, ApplicationAccessFilter.Header)
             .WithExposedHeaders("ETag", CorrelationIdMiddleware.Header)));
 
         builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>

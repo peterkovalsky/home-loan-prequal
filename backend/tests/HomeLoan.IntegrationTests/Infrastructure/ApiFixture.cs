@@ -1,4 +1,5 @@
 using Dapper;
+using HomeLoan.Application.Applications;
 using HomeLoan.Migrations;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -59,11 +60,30 @@ public sealed class ApiFixture : IAsyncLifetime
             }
         });
 
-    /// <summary>Removes all application data (reference data stays). Cascades from app.Application.</summary>
+    /// <summary>
+    /// The resume token of application 1, which every test starts with. Seeding it directly keeps
+    /// the endpoint tests about their endpoint; <c>ResumeTests</c> covers creating one with POST.
+    /// </summary>
+    public static readonly ResumeToken TestToken = ResumeToken.New();
+
+    /// <summary>
+    /// Removes all application data (reference data stays; it cascades from app.Application), then
+    /// seeds an empty application 1 that <see cref="TestToken"/> opens.
+    /// </summary>
     public async Task ResetAsync()
     {
         await using var connection = new SqlConnection(AdminConnectionString);
-        await connection.ExecuteAsync("DELETE FROM app.Application;");
+        await connection.ExecuteAsync(
+            "DELETE FROM app.Application; INSERT INTO app.Application (Id, ResumeTokenHash) VALUES (1, @hash);",
+            new { hash = TestToken.Hash() });
+    }
+
+    /// <summary>A client that presents <see cref="TestToken"/>, as the browser does.</summary>
+    public HttpClient CreateClient(WebApplicationFactory<Program>? host = null)
+    {
+        var client = (host ?? Factory).CreateClient();
+        client.DefaultRequestHeaders.Add("X-Application-Token", TestToken.Value);
+        return client;
     }
 
     public async Task DisposeAsync()
@@ -93,13 +113,19 @@ public abstract class ApiTest(ApiFixture fixture) : IAsyncLifetime
     public async Task InitializeAsync()
     {
         await Fixture.ResetAsync();
-        Client = Fixture.Factory.CreateClient();
+        Client = Fixture.CreateClient();
     }
 
     public Task DisposeAsync()
     {
         Client.Dispose();
         return Task.CompletedTask;
+    }
+
+    protected async Task ExecuteAsync(string sql, object? parameters = null)
+    {
+        await using var connection = new SqlConnection(Fixture.AdminConnectionString);
+        await connection.ExecuteAsync(sql, parameters);
     }
 
     protected async Task<T> ScalarAsync<T>(string sql, object? parameters = null)

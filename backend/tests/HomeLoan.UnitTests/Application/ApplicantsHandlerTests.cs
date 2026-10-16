@@ -1,5 +1,6 @@
 using HomeLoan.Application.Applicants;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Domain;
 using Microsoft.Extensions.Options;
 
@@ -9,12 +10,14 @@ public class ApplicantsHandlerTests
 {
     private readonly FakeLoanDetailsRepository loanDetails = new();
     private readonly FakeApplicantsRepository repository = new();
+    private readonly FakeDraftRepository drafts = new();
     private readonly FakeUnitOfWork unitOfWork = new();
 
     private SaveApplicantsHandler Handler() => new(
         new SaveApplicantsRequestValidator(Options.Create(new ConsentOptions { CurrentTermsVersion = "2026-10" }), TestClock.Default),
         loanDetails,
         repository,
+        drafts,
         unitOfWork,
         TestClock.Default,
         Options.Create(new ApplicantOptions { MaxApplicants = 4 }));
@@ -44,6 +47,19 @@ public class ApplicantsHandlerTests
         var result = await Save(Samples.Request(Enumerable.Repeat(Samples.Alex(), count).ToArray()));
 
         Assert.Contains(message, result.Error!.Fields!["applicants"][0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_successful_save_clears_the_about_you_draft()
+    {
+        drafts.Rows[(1, DraftSteps.AboutYou)] = "{}";
+        LoanDetailsFor(NumberOfApplicants.Single);
+
+        await Save(Samples.Request(Samples.Alex(), Samples.Jordan()));
+        Assert.True(drafts.Rows.ContainsKey((1, DraftSteps.AboutYou)), "a rejected save keeps the draft");
+
+        await Save(Samples.Request(Samples.Alex()));
+        Assert.False(drafts.Rows.ContainsKey((1, DraftSteps.AboutYou)));
     }
 
     [Fact]

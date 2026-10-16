@@ -99,7 +99,7 @@ public sealed class ApplicantsApiTests(ApiFixture fixture) : ApiTest(fixture)
         Assert.Equal(acceptedAt, (string)(await same.JsonAsync())["consent"]!["acceptedAt"]!);
 
         await using var newTerms = Fixture.CreateFactory(new Dictionary<string, string?> { ["Consent:CurrentTermsVersion"] = "2027-01" });
-        using var client = newTerms.CreateClient();
+        using var client = Fixture.CreateClient(newTerms);
         var oldVersion = await client.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody(), same.ETag());
         var newVersion = await client.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody("2027-01"), same.ETag());
 

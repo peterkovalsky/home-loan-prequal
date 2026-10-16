@@ -18,7 +18,7 @@ public sealed class ConcurrencyTests(ApiFixture fixture) : ApiTest(fixture)
             await Client.SaveLoanDetailsAsync(numberOfApplicants: 1);
             var created = await Client.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody());
 
-            using var second = Fixture.Factory.CreateClient();
+            using var second = Fixture.CreateClient();
             var results = await Task.WhenAll(
                 Client.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody("2026-10", TestApi.Applicant("First")), created.ETag()),
                 second.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody("2026-10", TestApi.Applicant("Second")), created.ETag()));
@@ -41,7 +41,7 @@ public sealed class ConcurrencyTests(ApiFixture fixture) : ApiTest(fixture)
         for (var round = 0; round < Rounds; round++)
         {
             await Fixture.ResetAsync();
-            using var second = Fixture.Factory.CreateClient();
+            using var second = Fixture.CreateClient();
 
             var results = await Task.WhenAll(
                 Client.PutAsync(TestApi.LoanDetails, TestApi.LoanDetailsBody(1)),

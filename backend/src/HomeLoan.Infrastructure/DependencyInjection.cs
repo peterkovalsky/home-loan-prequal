@@ -1,6 +1,7 @@
 using HomeLoan.Application.Applicants;
 using HomeLoan.Application.Applications;
 using HomeLoan.Application.Common;
+using HomeLoan.Application.Drafts;
 using HomeLoan.Application.Loans;
 using HomeLoan.Infrastructure.Data;
 using HomeLoan.Infrastructure.Repositories;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ILoanDetailsRepository, LoanDetailsRepository>();
         services.AddScoped<IApplicantsRepository, ApplicantsRepository>();
         services.AddScoped<IApplicationRepository, ApplicationRepository>();
+        services.AddScoped<IDraftRepository, DraftRepository>();
 
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
         return services;

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using HomeLoan.IntegrationTests.Infrastructure;
 
 namespace HomeLoan.IntegrationTests;
@@ -6,20 +7,21 @@ namespace HomeLoan.IntegrationTests;
 public sealed class ApplicationApiTests(ApiFixture fixture) : ApiTest(fixture)
 {
     [Fact]
-    public async Task Delete_removes_everything_saved_and_is_idempotent()
+    public async Task Delete_removes_everything_saved_and_the_token_stops_working()
     {
         await Client.SaveLoanDetailsAsync();
         await Client.PutAsync(TestApi.Applicants, TestApi.ApplicantsBody());
+        await Client.PutAsync("/api/applications/1/drafts/about-you", new JsonObject { ["applicants"] = new JsonArray() });
 
         var first = await Client.DeleteAsync("/api/applications/1");
         var again = await Client.DeleteAsync("/api/applications/1");
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, again.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
         Assert.Equal(0, await ScalarAsync<int>("""
             SELECT (SELECT COUNT(*) FROM app.Application) + (SELECT COUNT(*) FROM app.LoanDetails)
                  + (SELECT COUNT(*) FROM app.ApplicantSet) + (SELECT COUNT(*) FROM app.Applicant)
-                 + (SELECT COUNT(*) FROM app.ConsentRecord)
+                 + (SELECT COUNT(*) FROM app.ConsentRecord) + (SELECT COUNT(*) FROM app.ApplicationDraft)
             """));
     }
 
@@ -33,7 +35,7 @@ public sealed class ApplicationApiTests(ApiFixture fixture) : ApiTest(fixture)
         using var preflight = new HttpRequestMessage(HttpMethod.Options, TestApi.Applicants);
         preflight.Headers.Add("Origin", "http://localhost:4200");
         preflight.Headers.Add("Access-Control-Request-Method", "PUT");
-        preflight.Headers.Add("Access-Control-Request-Headers", "if-match,content-type");
+        preflight.Headers.Add("Access-Control-Request-Headers", "if-match,content-type,x-application-token");
 
         var response = await Client.SendAsync(preflight);
         var get = new HttpRequestMessage(HttpMethod.Get, TestApi.LoanDetails);
@@ -41,6 +43,7 @@ public sealed class ApplicationApiTests(ApiFixture fixture) : ApiTest(fixture)
         var actual = await Client.SendAsync(get);
 
         Assert.Equal("http://localhost:4200", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Contains("x-application-token", response.Headers.GetValues("Access-Control-Allow-Headers").Single(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ETag", actual.Headers.GetValues("Access-Control-Expose-Headers").Single(), StringComparison.OrdinalIgnoreCase);
     }
 
