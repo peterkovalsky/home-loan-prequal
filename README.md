@@ -75,9 +75,9 @@ cd frontend && npm run start:aws     # http://localhost:4200 → https://…exec
 | Suite | Command | What it proves |
 |---|---|---|
 | Front end lint and format | `cd frontend && npm run format:check && npm run lint` | Prettier and angular-eslint, with `OnPush` enforced |
-| Front end unit (110) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API |
-| Journeys on the mock (6) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard |
-| Journeys on the real stack (6) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
+| Front end unit (126) | `cd frontend && npm run test:ci` | Components, validators (age and mobile boundaries), store, ETag client, mock API, address suggestions |
+| Journeys on the mock (7) | `cd frontend && npm run e2e` | Playwright: two applicants, Back keeps input, validation, "more than two", guard, address suggestions (Addressfinder stubbed) |
+| Journeys on the real stack (7) | `docker compose up -d --build`, then `cd frontend && E2E_CONFIGURATION=local-api npm run e2e` | The same journeys against the .NET API and SQL Server |
 | Back end unit (85) | `cd backend && dotnet test tests/HomeLoan.UnitTests` | Domain rules, validators, handlers, ETags, secrets resolution |
 | Back end integration (47) | `cd backend && dotnet test tests/HomeLoan.IntegrationTests` | Real SQL Server (Testcontainers): the HTTP contract, **concurrent-save races**, every schema constraint, least-privilege login |
 | Infra (10) | `cd infra && dotnet test` | Synthesized CloudFormation: database private and encrypted, no internet route, secret scoping, OIDC trust |

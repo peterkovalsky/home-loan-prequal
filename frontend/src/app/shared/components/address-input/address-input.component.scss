@@ -1,0 +1,20 @@
+.address-input {
+	position: relative;
+}
+
+.address-input__list {
+	position: absolute;
+	z-index: 10;
+	left: 0;
+	right: 0;
+	max-height: 16rem;
+	overflow-y: auto;
+	border: 1px solid var(--app-border);
+	box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 8%);
+	cursor: pointer;
+
+	.list-group-item {
+		border-left: 0;
+		border-right: 0;
+	}
+}

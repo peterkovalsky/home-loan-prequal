@@ -2,5 +2,6 @@
 	"apiBaseUrl": "/api",
 	"useMockApi": true,
 	"maxApplicants": 4,
-	"termsVersion": "2026-10"
+	"termsVersion": "2026-10",
+	"addressFinderKey": "CNFYQ48RXBVHD76TLWUE"
 }

@@ -193,15 +193,13 @@
 		@if (isAddressKnown) {
 			<div class="mb-4">
 				<label class="form-label" for="address">Property address</label>
-				<input
-					id="address"
-					type="text"
-					class="form-control"
-					autocomplete="street-address"
+				<app-address-input
+					inputId="address"
 					formControlName="address"
-					[class.is-invalid]="isInvalid(form.controls.address)"
-				/>
-				<div class="invalid-feedback">Please enter the property address.</div>
+					[invalid]="isInvalid(form.controls.address)"
+				>
+					<div class="invalid-feedback">Please enter the property address.</div>
+				</app-address-input>
 			</div>
 		} @else {
 			<div class="mb-4 loan-details__narrow">

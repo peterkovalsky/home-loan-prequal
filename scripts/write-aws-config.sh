@@ -9,12 +9,12 @@ if [[ -z "$url" ]]; then
   url=$(aws cloudformation describe-stacks --profile huskystudio --region ap-southeast-2 --stack-name HomeLoanApi \
     --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" --output text)
 fi
-cat > frontend/config/aws/config.json <<JSON
-{
-	"apiBaseUrl": "${url%/}/api",
-	"useMockApi": false,
-	"maxApplicants": 4,
-	"termsVersion": "2026-10"
-}
-JSON
+# Only the API URL changes; the other settings (applicant cap, terms, Addressfinder key) are kept.
+node -e '
+const fs = require("fs");
+const file = "frontend/config/aws/config.json";
+const config = JSON.parse(fs.readFileSync(file, "utf8"));
+config.apiBaseUrl = process.argv[1];
+fs.writeFileSync(file, JSON.stringify(config, null, "\t") + "\n");
+' "${url%/}/api"
 echo "frontend/config/aws/config.json -> ${url%/}/api"

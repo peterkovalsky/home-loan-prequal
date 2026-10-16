@@ -2,5 +2,6 @@
 	"apiBaseUrl": "https://wmq0xra270.execute-api.ap-southeast-2.amazonaws.com/api",
 	"useMockApi": false,
 	"maxApplicants": 4,
-	"termsVersion": "2026-10"
+	"termsVersion": "2026-10",
+	"addressFinderKey": "CNFYQ48RXBVHD76TLWUE"
 }

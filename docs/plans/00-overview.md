@@ -22,6 +22,7 @@ Each phase gets its own plan file in this folder (`01-frontend.md`, `02-backend.
 | Data access | Dapper, with DbUp for versioned SQL migrations. |
 | IaC | AWS CDK in C# (one language across the back end). |
 | AWS deploy | Lambda **container images** (ECR, arm64) via CDK; GitHub Actions deploys on every push to `main` (OIDC, no stored keys). Account `085843960390`, `ap-southeast-2`. See `03-aws.md`. |
+| Address suggestions | Addressfinder (G-NAF), called from the browser with the public key; own combobox behind an `AddressLookup` abstraction. See `05-address-autocomplete.md`. |
 | Concurrency | A `rowversion` per resource, exposed as an ETag; `If-Match` on PUT; stale writes get `412`, a missing `If-Match` gets `428`. |
 
 ## Phase 0: Repo and guardrails (~30 min)

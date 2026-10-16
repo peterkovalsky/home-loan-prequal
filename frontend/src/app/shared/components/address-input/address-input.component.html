@@ -1,0 +1,67 @@
+<div class="address-input">
+	@if (lookup.enabled) {
+		<input
+			[id]="inputId()"
+			type="text"
+			class="form-control"
+			role="combobox"
+			autocomplete="off"
+			aria-autocomplete="list"
+			[attr.aria-expanded]="open()"
+			[attr.aria-controls]="listId()"
+			[attr.aria-activedescendant]="activeOptionId()"
+			[attr.aria-describedby]="inputId() + '-hint'"
+			[attr.maxlength]="maxLength()"
+			[class.is-invalid]="invalid()"
+			[value]="value()"
+			[disabled]="disabled()"
+			(input)="onInput($any($event.target).value)"
+			(keydown)="onKeydown($event)"
+			(blur)="onBlur()"
+		/>
+	} @else {
+		<input
+			[id]="inputId()"
+			type="text"
+			class="form-control"
+			autocomplete="street-address"
+			[attr.maxlength]="maxLength()"
+			[class.is-invalid]="invalid()"
+			[value]="value()"
+			[disabled]="disabled()"
+			(input)="onInput($any($event.target).value)"
+			(blur)="onBlur()"
+		/>
+	}
+	@if (lookup.enabled) {
+		<!-- No "top": an absolutely positioned list without one opens just under the input. -->
+		<ul class="list-group address-input__list" role="listbox" [id]="listId()" [hidden]="!open()">
+			@for (suggestion of suggestions(); track suggestion.id; let i = $index) {
+				<!--
+					Combobox pattern: focus stays on the input, which handles the keyboard and points at the
+					active option with aria-activedescendant, so options are deliberately not focusable.
+					mousedown is cancelled so the input keeps focus and the click lands.
+				-->
+				<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+				<li
+					class="list-group-item list-group-item-action"
+					role="option"
+					[id]="optionId(i)"
+					[class.active]="i === activeIndex()"
+					[attr.aria-selected]="i === activeIndex()"
+					(mousedown)="$event.preventDefault()"
+					(click)="select(suggestion)"
+				>
+					{{ suggestion.fullAddress }}
+				</li>
+			}
+		</ul>
+	}
+	<ng-content />
+
+	@if (lookup.enabled) {
+		<div class="form-text" [id]="inputId() + '-hint'">
+			Start typing and pick the address, or type it in full if it isn't listed.
+		</div>
+	}
+</div>

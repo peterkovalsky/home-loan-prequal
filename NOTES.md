@@ -71,6 +71,28 @@ flowchart TB
 
 **Left alone, on purpose:** the reference-data enums and their codes (shared with the database seed), the regex-based mock router, `mockDb`, and Loan details' conditional-field logic (`syncConditionalFields`). These work, are tested, and changing them would have been churn without benefit.
 
+**Added after the brief: property address suggestions** ([plan](docs/plans/05-address-autocomplete.md)).
+
+```mermaid
+flowchart LR
+    Input["Address input<br/>combobox, debounced 250 ms,<br/>3+ characters"] -->|"suggest(query)"| Lookup["AddressLookup<br/>(swappable)"]
+    Lookup -->|"public key only<br/>PO boxes excluded"| AF["Addressfinder<br/>AU autocomplete (G-NAF)"]
+    Input -->|"picked or typed text"| Form["Loan details form<br/>→ PUT, server re-validates"]
+```
+
+- **Called from the browser** with Addressfinder's public key. Addressfinder checks the calling domain; the secret is only for server-to-server calls, and it's never used or stored.
+  - The API's Lambda has no internet route, so a server-side proxy would have needed a NAT gateway.
+- **Our own combobox**, not the vendor widget. It's a `ControlValueAccessor` in the reactive form, `OnPush`, and follows the ARIA pattern: Up, Down, Enter, Escape, and `aria-activedescendant`.
+- **A suggestion is a convenience, never a gate.**
+  - An unlisted address (a new build, vacant land) can be typed in full.
+  - Errors and timeouts (5 s) just mean no suggestions.
+  - With no `addressFinderKey` in `config.json`, the field is a plain input.
+- **Tests:** unit tests for the lookup, the component and the config. One Playwright journey picks a suggestion with the keyboard.
+  - Every journey blocks the real service, and this one stubs it with `page.route`, so CI never depends on, or spends quota at, the vendor.
+  - It was also checked by hand against the real service.
+- **Found while planning it:** the mock interceptor matched by path only, and Addressfinder's path also starts with `/api/`. It now matches the origin too, with a test that fails without the fix.
+- **Next:** store the G-NAF id, state and postcode (a migration), and verify them server side with the secret. Lock the key to the real domains once the front end is deployed.
+
 **Not built:** a metadata-driven form engine. The config (`maxApplicants`, `termsVersion`, the journey token) is the first step towards per-lender configuration; see Improvements.
 
 ---

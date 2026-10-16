@@ -7,6 +7,7 @@ import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
 import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage } from '../../core/models/reference-data';
 import { provideTestAppConfig } from '../../../testing/test-app-config';
+import { AddressLookup, NoAddressLookup } from '../../core/address/address-lookup';
 import { LoanDetailsComponent } from './loan-details.component';
 
 describe('LoanDetailsComponent', () => {
@@ -55,6 +56,7 @@ describe('LoanDetailsComponent', () => {
 			providers: [
 				provideRouter([]),
 				provideTestAppConfig(),
+				{ provide: AddressLookup, useValue: new NoAddressLookup() },
 				{ provide: LoanDetailsService, useValue: service },
 				{ provide: ApplicantsService, useValue: jasmine.createSpyObj('ApplicantsService', ['get', 'save']) }
 			]

@@ -18,6 +18,7 @@ import {
 	PropertyUsage
 } from '../../core/models/reference-data';
 import { ApplicationStore } from '../../core/state/application.store';
+import { AddressInputComponent } from '../../shared/components/address-input/address-input.component';
 import { StepActionsComponent } from '../../shared/components/step-actions/step-actions.component';
 import { StepCardComponent } from '../../shared/components/step-card/step-card.component';
 import { isInvalid } from '../../shared/forms/form-helpers';
@@ -26,7 +27,7 @@ import { depositWithinPropertyValueValidator } from '../../shared/validators/dep
 
 @Component({
 	selector: 'app-loan-details',
-	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent],
+	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent, AddressInputComponent],
 	templateUrl: './loan-details.component.html',
 	styleUrl: './loan-details.component.scss',
 	changeDetection: ChangeDetectionStrategy.OnPush

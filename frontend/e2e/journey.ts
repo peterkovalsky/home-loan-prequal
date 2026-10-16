@@ -29,7 +29,7 @@ export const JORDAN: ApplicantInput = {
 };
 
 /** The Bootstrap toggle buttons hide the radio input, so click its visible label. */
-async function choose(page: Page, label: string): Promise<void> {
+export async function choose(page: Page, label: string): Promise<void> {
 	await page.locator('label.btn', { hasText: new RegExp(`^\\s*${label}\\s*$`) }).click();
 }
 
@@ -85,15 +85,25 @@ function usesRealApi(): boolean {
 export const E2E_APPLICATION_ID = 900100;
 
 /**
- * Points the app at the E2E application (by rewriting `config.json`) and, against a real API,
+ * Points the app at the E2E application (by rewriting `config.json`), blocks the real address
+ * service, and, against a real API,
  * deletes it first: through the dev server's proxy for docker compose, or directly at E2E_API_URL
  * for a deployed API. Against the mock each test already gets a fresh browser context, and so
  * fresh localStorage.
  */
-export async function useTestApplication(page: Page, request: APIRequestContext): Promise<void> {
+export async function useTestApplication(
+	page: Page,
+	request: APIRequestContext,
+	config: Record<string, unknown> = {}
+): Promise<void> {
+	// No journey ever reaches the real address service; tests that need suggestions stub it.
+	await page.route('https://api.addressfinder.io/**', (route) => route.abort());
 	await page.route('**/config.json', async (route) => {
 		const response = await route.fetch();
-		await route.fulfill({ response, json: { ...(await response.json()), applicationId: E2E_APPLICATION_ID } });
+		await route.fulfill({
+			response,
+			json: { ...(await response.json()), applicationId: E2E_APPLICATION_ID, ...config }
+		});
 	});
 
 	if (!usesRealApi()) {

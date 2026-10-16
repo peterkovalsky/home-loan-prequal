@@ -27,6 +27,7 @@ Use the repo skill `.claude/skills/add-journey-step/SKILL.md`. It has the step-b
 - **`ApplicationResourceClient`:** GET and PUT on `/applications/{id}/{resource}`, with `ETag` and `If-Match`.
 - **`StepCardComponent` and `StepActionsComponent`:** the step frame and the Back/Continue footer.
 - **`shared/validation`:** pure rule functions shared by the form validators and the mock.
+- **`AddressLookup` and `AddressInputComponent`:** address suggestions (Addressfinder when `config.json` has `addressFinderKey`). E2E journeys block the real service; stub it with `page.route`.
 
 ## Testing
 
