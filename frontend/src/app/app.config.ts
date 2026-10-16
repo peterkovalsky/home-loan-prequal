@@ -4,6 +4,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { provideAddressLookup } from './core/address/address-lookup.provider';
 import { APP_CONFIG, AppConfig } from './core/config/app-config';
+import { applicationTokenInterceptor } from './core/session/application-token.interceptor';
 import { mockApiInterceptor } from './mock-api/mock-api.interceptor';
 
 export function createAppConfig(config: AppConfig): ApplicationConfig {
@@ -12,7 +13,10 @@ export function createAppConfig(config: AppConfig): ApplicationConfig {
 			{ provide: APP_CONFIG, useValue: config },
 			provideZoneChangeDetection({ eventCoalescing: true }),
 			provideRouter(routes, withComponentInputBinding()),
-			provideHttpClient(withInterceptors(config.useMockApi ? [mockApiInterceptor] : [])),
+			// The token goes on first, so the mock sees it too and checks it like the API.
+			provideHttpClient(
+				withInterceptors([applicationTokenInterceptor, ...(config.useMockApi ? [mockApiInterceptor] : [])])
+			),
 			provideAddressLookup(config)
 		]
 	};

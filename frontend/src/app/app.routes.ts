@@ -1,11 +1,12 @@
 import { Routes } from '@angular/router';
 import { loanDetailsSavedGuard } from './core/guards/loan-details-saved.guard';
+import { resumeGuard } from './core/guards/resume.guard';
 import { STEP_PATHS } from './core/journey/journey-steps';
 
 const path = (stepPath: string) => stepPath.replace(/^\//, '');
 
 export const routes: Routes = [
-	{ path: '', redirectTo: path(STEP_PATHS.loanDetails), pathMatch: 'full' },
+	{ path: '', pathMatch: 'full', canActivate: [resumeGuard], children: [] },
 	{
 		path: path(STEP_PATHS.loanDetails),
 		loadComponent: () =>

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { choose, useTestApplication } from './journey';
+import { choose, setUpJourney } from './journey';
 
 const TEST_KEY = 'E2E-PUBLIC-KEY';
 
@@ -9,8 +9,8 @@ const SUGGESTIONS = [
 ];
 
 test.describe('Loan details', () => {
-	test.beforeEach(async ({ page, request }) => {
-		await useTestApplication(page, request, { addressFinderKey: TEST_KEY });
+	test.beforeEach(async ({ page }) => {
+		await setUpJourney(page, { addressFinderKey: TEST_KEY });
 		// Registered last, so it wins over the block: canned Addressfinder answers, never the real service.
 		await page.route('https://api.addressfinder.io/api/au/address/autocomplete/**', (route) => {
 			const key = new URL(route.request().url()).searchParams.get('key');

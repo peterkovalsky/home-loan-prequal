@@ -23,7 +23,9 @@ Use the repo skill `.claude/skills/add-journey-step/SKILL.md`. It has the step-b
 
 - **`APP_CONFIG`:** runtime `config.json`, chosen per build configuration from `config/<env>/`.
 - **`JourneyService`:** next and previous steps; never hard-code a neighbouring step.
-- **`ApplicationStore`:** cached journey data, the About you draft, `requiredApplicantCount`, `completedSteps`.
+- **`ApplicationSession`:** this browser's application id and resume token (localStorage); creates the application on first use. `applicationTokenInterceptor` sends the token to our API only.
+- **`ApplicationStore`:** cached journey data, drafts per step (`draft()`, `saveDraft()`), `requiredApplicantCount`, `completedSteps`.
+- **`DraftAutosave`:** per step, in a field initialiser: `restored()` after loading, `changed()` on edits, `beforeSave()` before the real save.
 - **`ApplicationResourceClient`:** GET and PUT on `/applications/{id}/{resource}`, with `ETag` and `If-Match`.
 - **`StepCardComponent` and `StepActionsComponent`:** the step frame and the Back/Continue footer.
 - **`shared/validation`:** pure rule functions shared by the form validators and the mock.

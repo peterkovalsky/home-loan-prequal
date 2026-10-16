@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize, merge } from 'rxjs';
+import { finalize, forkJoin, merge, switchMap } from 'rxjs';
 import { toErrorMessages } from '../../core/api/api-errors';
+import { DraftAutosave } from '../../core/drafts/draft-autosave';
 import { STEP_PATHS } from '../../core/journey/journey-steps';
 import { JourneyService } from '../../core/journey/journey.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
@@ -19,6 +20,7 @@ import {
 } from '../../core/models/reference-data';
 import { ApplicationStore } from '../../core/state/application.store';
 import { AddressInputComponent } from '../../shared/components/address-input/address-input.component';
+import { DraftStatusComponent } from '../../shared/components/draft-status/draft-status.component';
 import { StepActionsComponent } from '../../shared/components/step-actions/step-actions.component';
 import { StepCardComponent } from '../../shared/components/step-card/step-card.component';
 import { isInvalid } from '../../shared/forms/form-helpers';
@@ -27,7 +29,13 @@ import { depositWithinPropertyValueValidator } from '../../shared/validators/dep
 
 @Component({
 	selector: 'app-loan-details',
-	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent, AddressInputComponent],
+	imports: [
+		ReactiveFormsModule,
+		StepCardComponent,
+		StepActionsComponent,
+		AddressInputComponent,
+		DraftStatusComponent
+	],
 	templateUrl: './loan-details.component.html',
 	styleUrl: './loan-details.component.scss',
 	changeDetection: ChangeDetectionStrategy.OnPush
@@ -84,6 +92,9 @@ export class LoanDetailsComponent implements OnInit {
 		{ validators: depositWithinPropertyValueValidator }
 	);
 
+	/** Keeps what's typed on the server, valid or not, so the customer can leave and come back. */
+	readonly autosave = new DraftAutosave('loan-details', () => this.form.getRawValue());
+
 	get showSameHousehold(): boolean {
 		return this.form.controls.isSameHousehold.enabled;
 	}
@@ -99,18 +110,26 @@ export class LoanDetailsComponent implements OnInit {
 	ngOnInit(): void {
 		this.watchConditionalFields();
 
-		this.store
-			.ensureLoanDetails()
+		forkJoin({ details: this.store.ensureLoanDetails(), drafts: this.store.ensureDrafts() })
 			.pipe(
 				finalize(() => this.loading.set(false)),
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe({
-				next: (details) => {
-					if (details) {
-						this.form.patchValue(details, { emitEvent: false });
-						this.syncConditionalFields(false);
+				next: ({ details }) => {
+					// The saved answers, then any draft on top: a draft only exists if it was typed
+					// after the last save, so unsaved input wins.
+					const draft = this.store.draft('loan-details') as Partial<LoanDetails> | null;
+					for (const layer of [details, draft]) {
+						if (layer) {
+							this.form.patchValue(layer, { emitEvent: false });
+						}
 					}
+					this.syncConditionalFields(false);
+					this.autosave.restored();
+					this.form.valueChanges
+						.pipe(takeUntilDestroyed(this.destroyRef))
+						.subscribe(() => this.autosave.changed());
 				},
 				error: () => this.errorMessages.set(['We could not load your loan details. Please refresh the page.'])
 			});
@@ -125,15 +144,20 @@ export class LoanDetailsComponent implements OnInit {
 		}
 
 		this.saving.set(true);
-		this.store
-			.saveLoanDetails(this.toLoanDetails())
+		this.autosave
+			.beforeSave()
 			.pipe(
+				switchMap(() => this.store.saveLoanDetails(this.toLoanDetails())),
 				finalize(() => this.saving.set(false)),
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe({
 				next: () => this.saved.set(!this.journey.goNext(STEP_PATHS.loanDetails)),
-				error: (error: unknown) => this.errorMessages.set(toErrorMessages(error))
+				error: (error: unknown) => {
+					this.errorMessages.set(toErrorMessages(error));
+					// Not saved after all: keep the input as a draft again.
+					this.autosave.changed();
+				}
 			});
 	}
 
@@ -167,10 +191,9 @@ export class LoanDetailsComponent implements OnInit {
 		control.disable({ emitEvent: false });
 	}
 
-	private toLoanDetails(): LoanDetails {
+	private toLoanDetails(): Omit<LoanDetails, 'applicationId'> {
 		const value = this.form.getRawValue();
 		return {
-			applicationId: this.store.applicationId,
 			purpose: value.purpose!,
 			propertyUsage: value.propertyUsage!,
 			numberOfApplicants: value.numberOfApplicants!,

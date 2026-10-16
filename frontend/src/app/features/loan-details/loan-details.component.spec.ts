@@ -1,12 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { ApplicantsService } from '../../core/api/applicants.service';
+import { DraftsService } from '../../core/api/drafts.service';
+import { AUTOSAVE_DEBOUNCE_MS } from '../../core/drafts/draft-autosave';
 import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { LoanDetails } from '../../core/models/loan-details.model';
 import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage } from '../../core/models/reference-data';
 import { provideTestAppConfig } from '../../../testing/test-app-config';
+import { provideTestSession } from '../../../testing/test-session';
 import { AddressLookup, NoAddressLookup } from '../../core/address/address-lookup';
 import { LoanDetailsComponent } from './loan-details.component';
 
@@ -54,6 +57,7 @@ describe('LoanDetailsComponent', () => {
 		TestBed.configureTestingModule({
 			imports: [LoanDetailsComponent],
 			providers: [
+				...provideTestSession().providers,
 				provideRouter([]),
 				provideTestAppConfig(),
 				{ provide: AddressLookup, useValue: new NoAddressLookup() },
@@ -72,6 +76,59 @@ describe('LoanDetailsComponent', () => {
 		expect(component.showDeposit).toBeTrue();
 		expect(component.form.controls.isSameHousehold.value).toBeTrue();
 	});
+
+	it('restores a half-filled draft over the saved details, conditional questions included', () => {
+		const drafts = TestBed.inject(DraftsService) as jasmine.SpyObj<DraftsService>;
+		drafts.getAll.and.returnValue(
+			of({
+				'loan-details': {
+					data: { loanAmount: 610000, isAddressKnown: true, address: '12 Smi' },
+					updatedAt: 'x'
+				}
+			})
+		);
+
+		create(savedDetails);
+
+		expect(component.form.controls.loanAmount.value).toBe(610000);
+		expect(component.form.controls.address.enabled).toBeTrue();
+		expect(component.form.controls.address.value).toBe('12 Smi');
+		expect(component.form.controls.purpose.value)
+			.withContext('the rest is the saved answer')
+			.toBe(savedDetails.purpose);
+	});
+
+	it('saves what is typed as a draft after a pause, even when the form is not valid yet', fakeAsync(() => {
+		const drafts = TestBed.inject(DraftsService) as jasmine.SpyObj<DraftsService>;
+		create();
+
+		component.form.controls.loanAmount.setValue(450000);
+		tick(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(component.form.valid).toBeFalse();
+		expect(drafts.save).toHaveBeenCalledOnceWith(
+			1,
+			'loan-details',
+			jasmine.objectContaining({ loanAmount: 450000 })
+		);
+		fixture.detectChanges();
+		expect(fixture.nativeElement.textContent).toContain('Progress saved');
+	}));
+
+	it('does not send a draft after Continue has saved the step', fakeAsync(() => {
+		const drafts = TestBed.inject(DraftsService) as jasmine.SpyObj<DraftsService>;
+		service.save.and.callFake((details) => of(details));
+		spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+		create();
+		fillValidForm();
+
+		component.submit();
+		tick(AUTOSAVE_DEBOUNCE_MS);
+		fixture.destroy();
+
+		expect(service.save).toHaveBeenCalled();
+		expect(drafts.save).not.toHaveBeenCalled();
+	}));
 
 	it('only asks about the household when there is more than one applicant', () => {
 		create();

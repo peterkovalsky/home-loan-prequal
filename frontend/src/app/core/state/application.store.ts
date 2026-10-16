@@ -1,12 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, of, switchMap, tap } from 'rxjs';
 import { ApplicantCountRange, applicantCountRange } from '../../shared/validation/applicant-count';
 import { ApplicantsService } from '../api/applicants.service';
+import { DraftStep, Drafts, DraftsService } from '../api/drafts.service';
 import { LoanDetailsService } from '../api/loan-details.service';
 import { APP_CONFIG } from '../config/app-config';
 import { STEP_PATHS } from '../journey/journey-steps';
 import { ApplicantsDraft, ApplicantsResponse, SaveApplicantsRequest } from '../models/applicant.model';
 import { LoanDetails } from '../models/loan-details.model';
+import { ApplicationSession } from '../session/application-session';
 import { CachedResource } from './cached-resource';
 
 /** The single place journey data is loaded, cached and saved, so steps, guards and the nav agree. */
@@ -14,17 +16,32 @@ import { CachedResource } from './cached-resource';
 export class ApplicationStore {
 	private readonly loanDetailsService = inject(LoanDetailsService);
 	private readonly applicantsService = inject(ApplicantsService);
+	private readonly draftsService = inject(DraftsService);
+	private readonly session = inject(ApplicationSession);
 	private readonly config = inject(APP_CONFIG);
 
-	readonly applicationId = this.config.applicationId;
+	/** This browser's application, or null before the customer has started (nothing to load yet). */
+	readonly applicationId = this.session.applicationId;
 
-	private readonly loanDetailsResource = new CachedResource(() => this.loanDetailsService.get(this.applicationId));
-	private readonly applicantsResource = new CachedResource(() => this.applicantsService.get(this.applicationId));
-	private readonly draft = signal<ApplicantsDraft | null>(null);
+	private readonly loanDetailsResource = new CachedResource(() =>
+		this.whenStarted((id) => this.loanDetailsService.get(id))
+	);
+	private readonly applicantsResource = new CachedResource(() =>
+		this.whenStarted((id) => this.applicantsService.get(id))
+	);
+	private readonly draftsResource = new CachedResource<Drafts>(() =>
+		this.whenStarted((id) =>
+			// null: the server no longer knows this application (expired or deleted), so start afresh.
+			this.draftsService.getAll(id).pipe(tap((drafts) => drafts ?? this.session.forget()))
+		)
+	);
+	private readonly localDrafts = signal<Drafts>({});
 
 	readonly loanDetails = this.loanDetailsResource.value;
 	readonly applicants = this.applicantsResource.value;
-	readonly applicantsDraft = this.draft.asReadonly();
+
+	/** Unsaved About you input: typed in this tab, else as the server kept it. */
+	readonly applicantsDraft = computed(() => this.draft('about-you') as ApplicantsDraft | null);
 
 	/** How many applicant sections About you needs, based on the loan details answer. */
 	readonly requiredApplicantCount = computed<ApplicantCountRange | null>(() => {
@@ -59,8 +76,15 @@ export class ApplicationStore {
 		return this.loanDetailsResource.ensure();
 	}
 
-	saveLoanDetails(details: LoanDetails): Observable<LoanDetails> {
-		return this.loanDetailsService.save(details).pipe(tap((saved) => this.loanDetailsResource.set(saved)));
+	saveLoanDetails(details: Omit<LoanDetails, 'applicationId'>): Observable<LoanDetails> {
+		return this.session.ensure().pipe(
+			switchMap((applicationId) => this.loanDetailsService.save({ ...details, applicationId })),
+			tap((saved) => {
+				this.loanDetailsResource.set(saved);
+				// The server deleted the draft in the same transaction.
+				this.clearDraft('loan-details');
+			})
+		);
 	}
 
 	ensureApplicants(): Observable<ApplicantsResponse | null> {
@@ -68,15 +92,74 @@ export class ApplicationStore {
 	}
 
 	saveApplicants(request: SaveApplicantsRequest): Observable<ApplicantsResponse> {
-		return this.applicantsService.save(this.applicationId, request).pipe(
+		return this.session.ensure().pipe(
+			switchMap((applicationId) => this.applicantsService.save(applicationId, request)),
 			tap((saved) => {
 				this.applicantsResource.set(saved);
-				this.draft.set(null);
+				this.clearDraft('about-you');
 			})
 		);
 	}
 
-	saveApplicantsDraft(draft: ApplicantsDraft): void {
-		this.draft.set(draft);
+	/** Loads every step's draft (once). */
+	ensureDrafts(): Observable<Drafts> {
+		return this.draftsResource.ensure().pipe(map((drafts) => drafts ?? {}));
 	}
+
+	/** The step's unsaved input, if any: typed in this tab, else as the server kept it. */
+	draft(step: DraftStep): unknown {
+		return this.localDrafts()[step]?.data ?? this.draftsResource.value()?.[step]?.data ?? null;
+	}
+
+	/**
+	 * Keeps the step's input as typed: here at once (so Back and Continue see it), then on the
+	 * server, creating the application with the first save.
+	 */
+	saveDraft(step: DraftStep, data: unknown): Observable<void> {
+		this.rememberDraft(step, data);
+		return this.session
+			.ensure()
+			.pipe(switchMap((applicationId) => this.draftsService.save(applicationId, step, data)));
+	}
+
+	/** The last save as the page is hidden or closed; only if the application already exists. */
+	saveDraftOnExit(step: DraftStep, data: unknown): void {
+		this.rememberDraft(step, data);
+		const session = this.session.current();
+		if (session) {
+			this.draftsService.saveOnExit(session, step, data);
+		}
+	}
+
+	/** "Not you? Start a new application": forget this device's application and all that was loaded. */
+	startOver(): void {
+		this.session.forget();
+		this.loanDetailsResource.reset();
+		this.applicantsResource.reset();
+		this.draftsResource.reset();
+		this.localDrafts.set({});
+	}
+
+	private rememberDraft(step: DraftStep, data: unknown): void {
+		this.localDrafts.update((drafts) => ({ ...drafts, [step]: { data, updatedAt: new Date().toISOString() } }));
+	}
+
+	private clearDraft(step: DraftStep): void {
+		this.localDrafts.update((drafts) => withoutStep(drafts, step));
+		const server = this.draftsResource.value();
+		if (server?.[step]) {
+			this.draftsResource.set(withoutStep(server, step));
+		}
+	}
+
+	private whenStarted<T>(load: (applicationId: number) => Observable<T | null>): Observable<T | null> {
+		const id = this.session.applicationId();
+		return id === null ? of(null) : load(id);
+	}
+}
+
+function withoutStep(drafts: Drafts, step: DraftStep): Drafts {
+	const copy = { ...drafts };
+	delete copy[step];
+	return copy;
 }

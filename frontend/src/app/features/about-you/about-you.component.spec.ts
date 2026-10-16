@@ -3,8 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { provideTestAppConfig } from '../../../testing/test-app-config';
+import { provideTestSession } from '../../../testing/test-session';
 import { CONFLICT_ERROR } from '../../core/api/api-errors';
 import { ApplicantsService } from '../../core/api/applicants.service';
+import { DraftsService } from '../../core/api/drafts.service';
 import { LoanDetailsService } from '../../core/api/loan-details.service';
 import { ApplicantsResponse } from '../../core/models/applicant.model';
 import { LoanDetails } from '../../core/models/loan-details.model';
@@ -99,6 +101,7 @@ describe('AboutYouComponent', () => {
 		TestBed.configureTestingModule({
 			imports: [AboutYouComponent],
 			providers: [
+				...provideTestSession().providers,
 				provideRouter([]),
 				provideTestAppConfig({ maxApplicants: 4 }),
 				{ provide: CLOCK, useValue: () => new Date(2026, 9, 14) },
@@ -192,6 +195,27 @@ describe('AboutYouComponent', () => {
 		dob.setValue('2008-10-15');
 
 		expect(component.dateOfBirthMessage(dob)).toBe('Every applicant must be 18 or older.');
+	});
+
+	it('restores the About you draft kept on the server, over the saved applicants', () => {
+		const drafts = TestBed.inject(DraftsService) as jasmine.SpyObj<DraftsService>;
+		drafts.getAll.and.returnValue(
+			of({
+				'about-you': {
+					data: {
+						applicants: [{ ...savedApplicants().applicants[0], firstName: 'Alexandra' }],
+						termsAccepted: false
+					},
+					updatedAt: 'x'
+				}
+			})
+		);
+
+		create(NumberOfApplicants.Couple, savedApplicants());
+
+		expect(component.applicants.at(0).controls.firstName.value).toBe('Alexandra');
+		expect(component.applicants.length).withContext('still sized to the loan details').toBe(2);
+		expect(component.form.controls.termsAccepted.value).toBeFalse();
 	});
 
 	it('keeps unsaved input when the customer goes back and returns', () => {

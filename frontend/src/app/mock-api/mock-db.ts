@@ -28,6 +28,15 @@ export const mockDb = {
 		write(key, JSON.stringify(value));
 	},
 
+	remove(key: string): void {
+		memoryFallback.delete(key);
+		try {
+			localStorage.removeItem(STORAGE_PREFIX + key);
+		} catch {
+			return;
+		}
+	},
+
 	clear(): void {
 		memoryFallback.clear();
 		try {

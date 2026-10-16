@@ -5,8 +5,7 @@ export const TEST_APP_CONFIG: AppConfig = {
 	apiBaseUrl: '/api',
 	useMockApi: true,
 	maxApplicants: 4,
-	termsVersion: 'test-terms',
-	applicationId: 1
+	termsVersion: 'test-terms'
 };
 
 export function provideTestAppConfig(overrides: Partial<AppConfig> = {}): Provider {

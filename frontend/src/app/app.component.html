@@ -1,6 +1,11 @@
 <header class="app-header">
 	<div class="container d-flex align-items-center justify-content-between py-3">
 		<span class="app-header__title">Home Loan Pre-Qualification</span>
+		@if (hasApplication()) {
+			<button type="button" class="btn btn-link app-header__start-over" (click)="startOver()">
+				Not you? Start a new application
+			</button>
+		}
 	</div>
 </header>
 

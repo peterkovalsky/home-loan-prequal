@@ -7,6 +7,8 @@ import { AuState, LendingPurpose, NumberOfApplicants, PropertyUsage, Title } fro
 import { toIsoDate } from '../shared/validation/applicant-rules';
 import { MOCK_LATENCY_MS, mockApiInterceptor } from './mock-api.interceptor';
 import { mockDb } from './mock-db';
+import { applicationTokenInterceptor } from '../core/session/application-token.interceptor';
+import { TEST_TOKEN, provideTestSession } from '../../testing/test-session';
 
 describe('mock applicants API', () => {
 	const url = '/api/applications/1/applicants';
@@ -52,8 +54,14 @@ describe('mock applicants API', () => {
 
 	beforeEach(() => {
 		mockDb.clear();
+		// Application 1 exists and the test session holds its token, as after POST /api/applications.
+		mockDb.set('applications/1', { token: TEST_TOKEN });
 		TestBed.configureTestingModule({
-			providers: [provideTestAppConfig(), provideHttpClient(withInterceptors([mockApiInterceptor]))]
+			providers: [
+				provideTestAppConfig(),
+				...provideTestSession(1).providers,
+				provideHttpClient(withInterceptors([applicationTokenInterceptor, mockApiInterceptor]))
+			]
 		});
 		http = TestBed.inject(HttpClient);
 	});

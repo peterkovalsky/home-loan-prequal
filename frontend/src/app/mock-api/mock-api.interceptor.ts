@@ -1,6 +1,7 @@
 import { HttpErrorResponse, HttpHeaders, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { delay, dematerialize, materialize, of, throwError } from 'rxjs';
+import { isApiUrl } from '../core/api/api-url';
 import { APP_CONFIG } from '../core/config/app-config';
 import { MOCK_ROUTES } from './mock-routes';
 
@@ -8,13 +9,10 @@ export const MOCK_LATENCY_MS = 400;
 
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
 	const config = inject(APP_CONFIG);
-	// Match origin and path: third-party APIs (Addressfinder's is /api/au/...) must pass through.
-	const api = new URL(config.apiBaseUrl, 'http://localhost');
-	const url = new URL(req.url, 'http://localhost');
-	const path = url.pathname;
-	if (url.origin !== api.origin || !path.startsWith(api.pathname)) {
+	if (!isApiUrl(req.url, config.apiBaseUrl)) {
 		return next(req);
 	}
+	const path = new URL(req.url, 'http://localhost').pathname;
 
 	for (const route of MOCK_ROUTES) {
 		const match = route.method === req.method ? route.path.exec(path) : null;

@@ -9,20 +9,23 @@ import {
 	ReactiveFormsModule,
 	Validators
 } from '@angular/forms';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, switchMap } from 'rxjs';
 import { toErrorMessages } from '../../core/api/api-errors';
 import { APP_CONFIG } from '../../core/config/app-config';
+import { DraftAutosave } from '../../core/drafts/draft-autosave';
 import { STEP_PATHS } from '../../core/journey/journey-steps';
 import { JourneyService } from '../../core/journey/journey.service';
 import {
 	Applicant,
 	ApplicantDraft,
+	ApplicantsDraft,
 	ApplicantsResponse,
 	SaveApplicantsRequest
 } from '../../core/models/applicant.model';
 import { NumberOfApplicants, TITLE_OPTIONS, Title } from '../../core/models/reference-data';
 import { ApplicationStore } from '../../core/state/application.store';
 import { CLOCK } from '../../core/time/clock';
+import { DraftStatusComponent } from '../../shared/components/draft-status/draft-status.component';
 import { StepActionsComponent } from '../../shared/components/step-actions/step-actions.component';
 import { StepCardComponent } from '../../shared/components/step-card/step-card.component';
 import { isInvalid } from '../../shared/forms/form-helpers';
@@ -56,7 +59,7 @@ const EMPTY_APPLICANT: ApplicantDraft = {
 
 @Component({
 	selector: 'app-about-you',
-	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent, TermsDialogComponent],
+	imports: [ReactiveFormsModule, StepCardComponent, StepActionsComponent, TermsDialogComponent, DraftStatusComponent],
 	templateUrl: './about-you.component.html',
 	styleUrl: './about-you.component.scss',
 	changeDetection: ChangeDetectionStrategy.OnPush
@@ -89,6 +92,9 @@ export class AboutYouComponent implements OnInit {
 	/** Applicants beyond the current count (e.g. the customer went back and chose "Just me"). Kept, not submitted. */
 	private hiddenApplicants: ApplicantDraft[] = [];
 
+	/** Keeps what's typed on the server, valid or not, so the customer can leave and come back. */
+	readonly autosave = new DraftAutosave('about-you', () => this.toDraftValue());
+
 	get applicants(): FormArray<ApplicantForm> {
 		return this.form.controls.applicants;
 	}
@@ -104,7 +110,11 @@ export class AboutYouComponent implements OnInit {
 	}
 
 	ngOnInit(): void {
-		forkJoin({ loanDetails: this.store.ensureLoanDetails(), applicants: this.store.ensureApplicants() })
+		forkJoin({
+			loanDetails: this.store.ensureLoanDetails(),
+			applicants: this.store.ensureApplicants(),
+			drafts: this.store.ensureDrafts()
+		})
 			.pipe(
 				finalize(() => this.loading.set(false)),
 				takeUntilDestroyed(this.destroyRef)
@@ -114,11 +124,13 @@ export class AboutYouComponent implements OnInit {
 					this.numberOfApplicants = loanDetails?.numberOfApplicants ?? null;
 					this.range = this.store.requiredApplicantCount() ?? this.range;
 					this.populate(applicants);
+					this.autosave.restored();
+					this.form.valueChanges
+						.pipe(takeUntilDestroyed(this.destroyRef))
+						.subscribe(() => this.autosave.changed());
 				},
 				error: () => this.errorMessages.set(['We could not load your details. Please refresh the page.'])
 			});
-
-		this.destroyRef.onDestroy(() => this.keepDraft());
 	}
 
 	canRemoveApplicant(index: number): boolean {
@@ -170,9 +182,10 @@ export class AboutYouComponent implements OnInit {
 		}
 
 		this.saving.set(true);
-		this.store
-			.saveApplicants(this.toRequest())
+		this.autosave
+			.beforeSave()
 			.pipe(
+				switchMap(() => this.store.saveApplicants(this.toRequest())),
 				finalize(() => this.saving.set(false)),
 				takeUntilDestroyed(this.destroyRef)
 			)
@@ -181,7 +194,11 @@ export class AboutYouComponent implements OnInit {
 					this.form.markAsPristine();
 					this.saved.set(!this.journey.goNext(STEP_PATHS.aboutYou));
 				},
-				error: (error: unknown) => this.errorMessages.set(toErrorMessages(error))
+				error: (error: unknown) => {
+					this.errorMessages.set(toErrorMessages(error));
+					// Not saved after all: keep the input as a draft again.
+					this.autosave.changed();
+				}
 			});
 	}
 
@@ -217,12 +234,10 @@ export class AboutYouComponent implements OnInit {
 		});
 	}
 
-	private keepDraft(): void {
-		if (this.loading() || !this.form.dirty) {
-			return;
-		}
+	/** Everything typed, including applicants hidden by a smaller count, so none is lost. */
+	private toDraftValue(): ApplicantsDraft {
 		const { applicants, termsAccepted } = this.form.getRawValue();
-		this.store.saveApplicantsDraft({ applicants: [...applicants, ...this.hiddenApplicants], termsAccepted });
+		return { applicants: [...applicants, ...this.hiddenApplicants], termsAccepted };
 	}
 
 	private toDraft(applicant: Applicant): ApplicantDraft {

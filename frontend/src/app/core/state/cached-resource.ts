@@ -30,4 +30,10 @@ export class CachedResource<T> {
 		this.current.set(value);
 		this.request = of(value);
 	}
+
+	/** Forgets the value, so the next `ensure()` loads again. */
+	reset(): void {
+		this.current.set(null);
+		this.request = null;
+	}
 }
