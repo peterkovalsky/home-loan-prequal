@@ -30,6 +30,21 @@ public class DatabaseSecretsTests
     }
 
     [Fact]
+    public async Task Resolve_returns_the_settings_without_touching_the_configuration()
+    {
+        var configuration = Config(("Database:AppSecretArn", AppArn), ("Database:Host", "db"));
+
+        var settings = await DatabaseSecrets.ResolveAsync(configuration, Secrets(new()
+        {
+            [AppArn] = """{"username":"homeloan_app","password":"pw"}"""
+        }));
+
+        Assert.Equal("homeloan_app", new SqlConnectionStringBuilder(settings["ConnectionStrings:HomeLoan"]).UserID);
+        Assert.Equal("pw", settings["Database:AppLoginPassword"]);
+        Assert.Null(configuration.GetConnectionString("HomeLoan"));
+    }
+
+    [Fact]
     public async Task Builds_an_encrypted_validated_connection_string_for_the_app_login()
     {
         var configuration = Config(("Database:AppSecretArn", AppArn), ("Database:Host", "db.example.rds.amazonaws.com"));

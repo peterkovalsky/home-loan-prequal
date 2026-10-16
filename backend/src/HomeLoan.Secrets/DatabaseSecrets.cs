@@ -24,11 +24,25 @@ public static class DatabaseSecrets
     public static async Task ApplyAsync(IConfigurationManager configuration, SecretFetcher? fetch = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        var settings = await ResolveAsync(configuration, fetch, cancellationToken);
+        if (settings.Count > 0)
+        {
+            configuration.AddInMemoryCollection(settings);
+        }
+    }
+
+    /// <summary>
+    /// Fetches and builds the settings without applying them, so a caller can start this early and
+    /// overlap it with other start-up work. Empty when no secret ARN is configured.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<string, string?>> ResolveAsync(IConfiguration configuration, SecretFetcher? fetch = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
         var appArn = configuration[AppSecretArnKey];
         var adminArn = configuration[AdminSecretArnKey];
         if (string.IsNullOrWhiteSpace(appArn) && string.IsNullOrWhiteSpace(adminArn))
         {
-            return;
+            return new Dictionary<string, string?>();
         }
 
         var host = configuration["Database:Host"];
@@ -52,7 +66,7 @@ public static class DatabaseSecrets
             var admin = Parse(await fetch(adminArn, cancellationToken), adminArn);
             settings["ConnectionStrings:Admin"] = BuildConnectionString(host, port, name, admin);
         }
-        configuration.AddInMemoryCollection(settings);
+        return settings;
     }
 
     /// <summary>Encrypted and certificate-validated: the image trusts the RDS CA bundle.</summary>

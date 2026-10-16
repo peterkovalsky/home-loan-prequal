@@ -7,6 +7,7 @@ namespace HomeLoan.Api;
 /// just before the host runs. Not on ApplicationStarted: under the Lambda hosting adapter, starting
 /// the server runs the runtime loop and never returns, so that event never fires. On Lambda, the
 /// INIT Duration minus runtimeToMain and totalSinceMain is the time spent starting the host itself.
+/// <c>secrets</c> is only the wait after creating the builder: the fetch starts before it.
 /// </summary>
 internal sealed partial class StartupTimings
 {
