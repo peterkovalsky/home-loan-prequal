@@ -197,6 +197,14 @@ describe('AboutYouComponent', () => {
 		expect(component.dateOfBirthMessage(dob)).toBe('Every applicant must be 18 or older.');
 	});
 
+	it('calls its button "Submit application", because About you is the last step', () => {
+		create();
+
+		expect(fixture.nativeElement.querySelector('button[type="submit"]').textContent.trim()).toBe(
+			'Submit application'
+		);
+	});
+
 	it('restores the About you draft kept on the server, over the saved applicants', () => {
 		const drafts = TestBed.inject(DraftsService) as jasmine.SpyObj<DraftsService>;
 		drafts.getAll.and.returnValue(

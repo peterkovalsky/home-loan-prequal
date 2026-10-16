@@ -96,6 +96,9 @@ export class AboutYouComponent implements OnInit {
 	/** Keeps what's typed on the server, valid or not, so the customer can leave and come back. */
 	readonly autosave = new DraftAutosave('about-you', () => this.toDraftValue());
 
+	/** On the last step, saving submits the application, so the button says so. */
+	readonly continueLabel = this.journey.next(STEP_PATHS.aboutYou) ? 'Continue' : 'Submit application';
+
 	get applicants(): FormArray<ApplicantForm> {
 		return this.form.controls.applicants;
 	}

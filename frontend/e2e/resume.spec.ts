@@ -54,7 +54,7 @@ test.describe('Coming back later', () => {
 		await completeLoanDetails(page, 'Just me');
 		await fillApplicant(page, 1, ALEX);
 		await agreeToTerms(page);
-		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('button', { name: 'Submit application' }).click();
 		await expect(page).toHaveURL(/\/complete$/);
 
 		const { context, page: again } = await reopen(browser, page.context());

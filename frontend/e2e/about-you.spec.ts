@@ -12,7 +12,7 @@ test.describe('About you', () => {
 		await fillApplicant(page, 1, ALEX);
 		await fillApplicant(page, 2, JORDAN);
 		await agreeToTerms(page);
-		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('button', { name: 'Submit application' }).click();
 
 		// Saving the last step submits the application.
 		await expect(page).toHaveURL(/\/complete$/);
@@ -32,7 +32,7 @@ test.describe('About you', () => {
 		await completeLoanDetails(page, 'Just me');
 		await fillApplicant(page, 1, ALEX);
 		await agreeToTerms(page);
-		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('button', { name: 'Submit application' }).click();
 		await expect(page.getByRole('heading', { name: 'Application submitted' })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Start a new application', exact: true }).click();
@@ -62,7 +62,7 @@ test.describe('About you', () => {
 		await fillApplicant(page, 1, ALEX);
 		await fillApplicant(page, 2, { ...JORDAN, mobile: '0412 34', dateOfBirth: '2015-01-01' });
 
-		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('button', { name: 'Submit application' }).click();
 
 		await expect(applicant(page, 2).getByText('Enter a valid Australian mobile number')).toBeVisible();
 		await expect(applicant(page, 2).getByText('Every applicant must be 18 or older.')).toBeVisible();
@@ -77,7 +77,7 @@ test.describe('About you', () => {
 		await fillApplicant(page, 2, JORDAN);
 		await agreeToTerms(page);
 
-		await page.getByRole('button', { name: 'Continue' }).click();
+		await page.getByRole('button', { name: 'Submit application' }).click();
 
 		await expect(applicant(page, 1).getByText('Please enter an email address.')).toBeVisible();
 		await expect(applicant(page, 2).getByText('Please enter an email address.')).toHaveCount(0);

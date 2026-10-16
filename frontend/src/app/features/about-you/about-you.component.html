@@ -163,7 +163,7 @@
 		</div>
 
 		<app-draft-status [status]="autosave.status()" />
-		<app-step-actions [saving]="saving()" [showBack]="true" (back)="back()" />
+		<app-step-actions [saving]="saving()" [showBack]="true" [continueLabel]="continueLabel" (back)="back()" />
 	</form>
 
 	<app-terms-dialog #terms (agreed)="agreeToTerms()" />
